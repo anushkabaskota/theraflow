@@ -123,6 +123,9 @@ export default function LoginPage() {
           case 'auth/email-already-in-use':
             description = 'An account with this email already exists.';
             break;
+          case 'auth/configuration-not-found':
+            description = 'Email/Password sign-in is not enabled. Please enable it in your Firebase console under Authentication > Sign-in method.';
+            break;
           default:
             description = error.message;
         }
