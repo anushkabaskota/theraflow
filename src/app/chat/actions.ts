@@ -4,7 +4,6 @@ import { initiateBooking } from '@/ai/flows/patient-initiates-booking';
 import { checkTherapistAvailability } from '@/ai/flows/check-therapist-availability';
 import { presentAvailableSlots } from '@/ai/flows/present-available-slots';
 import { confirmBookingDetails } from '@/ai/flows/confirm-booking-details';
-import { createAppointment } from '@/lib/firestore';
 import { parse, addDays, nextSunday, formatISO } from 'date-fns';
 
 async function simpleDateParser(text: string): Promise<{ startDate: string; endDate: string }> {
@@ -84,25 +83,12 @@ export async function bookSlot(
 ): Promise<{ confirmationMessage: string; bookingSuccessful: boolean }> {
   
   const bookingResult = await confirmBookingDetails({
+    patientId,
     patientName,
+    therapistId,
     therapistName,
     dateTime,
   });
-
-  if (bookingResult.bookingSuccessful) {
-    const startTime = new Date(dateTime);
-    const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // Assume 1-hour sessions
-    
-    await createAppointment({
-      patientId,
-      patientName,
-      therapistId,
-      therapistName,
-      startTime,
-      endTime,
-      status: 'confirmed',
-    });
-  }
 
   return bookingResult;
 }

@@ -11,6 +11,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { eachDayOfInterval, setHours, setMinutes, setSeconds, startOfDay } from 'date-fns';
 
 const CheckTherapistAvailabilityInputSchema = z.object({
   therapistId: z.string().describe('The ID of the therapist.'),
@@ -41,12 +42,29 @@ const getAvailableSlots = ai.defineTool({
   outputSchema: z.array(z.string()).describe('An array of available time slots (ISO format).'),
 }, async (input) => {
   // TODO: Implement the Google Calendar API call here to fetch available slots.
-  // Replace this with the actual implementation.
+  // This mock implementation generates slots from 9am to 5pm on weekdays.
   console.log(`Checking availability for therapist ${input.therapistId} from ${input.startDate} to ${input.endDate}`);
-  const mockAvailableSlots = [
-    new Date(new Date(input.startDate).getTime() + 60 * 60 * 1000).toISOString(),
-    new Date(new Date(input.startDate).getTime() + 2 * 60 * 60 * 1000).toISOString(),
-  ];
+  
+  const start = startOfDay(new Date(input.startDate));
+  const end = startOfDay(new Date(input.endDate));
+  const days = eachDayOfInterval({ start, end });
+
+  const mockAvailableSlots: string[] = [];
+
+  days.forEach(day => {
+    // Weekdays only (Monday=1, Sunday=0)
+    const dayOfWeek = day.getDay();
+    if (dayOfWeek > 0 && dayOfWeek < 6) {
+      for (let hour = 9; hour <= 17; hour++) {
+        // Add some variability - not every hour is free
+        if (Math.random() > 0.5) {
+            const slot = setSeconds(setMinutes(setHours(day, hour), 0), 0);
+            mockAvailableSlots.push(slot.toISOString());
+        }
+      }
+    }
+  });
+
   return mockAvailableSlots;
 });
 

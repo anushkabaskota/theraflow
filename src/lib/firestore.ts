@@ -9,7 +9,7 @@ import {
   getDocs,
   Timestamp,
 } from 'firebase/firestore';
-import { db } from './firebase';
+import { db, auth } from './firebase';
 import type { User } from 'firebase/auth';
 import type { Appointment, UserProfile } from '@/types';
 

@@ -11,9 +11,9 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-if (!firebaseConfig.apiKey) {
-  throw new Error(
-    'Firebase configuration is missing. The environment variables (e.g., NEXT_PUBLIC_FIREBASE_API_KEY) are not set.'
+if (!firebaseConfig.apiKey || firebaseConfig.apiKey.includes('YOUR_API_KEY')) {
+  console.error(
+    'Firebase configuration is missing or incomplete. Please update .env.local with your Firebase project credentials.'
   );
 }
 

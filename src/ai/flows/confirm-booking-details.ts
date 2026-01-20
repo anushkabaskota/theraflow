@@ -10,9 +10,12 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { createAppointment } from '@/lib/firestore';
 
 const ConfirmBookingDetailsInputSchema = z.object({
+  patientId: z.string().describe('The ID of the patient.'),
   patientName: z.string().describe('The name of the patient.'),
+  therapistId: z.string().describe('The ID of the therapist.'),
   therapistName: z.string().describe('The name of the therapist.'),
   dateTime: z.string().describe('The date and time of the appointment.'),
 });
@@ -26,20 +29,38 @@ export type ConfirmBookingDetailsOutput = z.infer<typeof ConfirmBookingDetailsOu
 
 const createBooking = ai.defineTool({
   name: 'createBooking',
-  description: 'Creates a booking in the system.',
+  description: 'Creates a booking in the system for a patient with a therapist at a specific date and time.',
   inputSchema: z.object({
+    patientId: z.string().describe('The ID of the patient.'),
     patientName: z.string().describe('The name of the patient.'),
+    therapistId: z.string().describe('The ID of the therapist.'),
     therapistName: z.string().describe('The name of the therapist.'),
-    dateTime: z.string().describe('The date and time of the appointment.'),
+    dateTime: z.string().describe('The date and time of the appointment in ISO format.'),
   }),
   outputSchema: z.boolean(),
   async handler(input) {
-    // TODO: Implement the actual booking creation logic here.
-    // This is a placeholder implementation that always returns true.
-    console.log(
-      `Creating booking for ${input.patientName} with ${input.therapistName} at ${input.dateTime}`
-    );
-    return true;
+    try {
+        const startTime = new Date(input.dateTime);
+        // Assume 1-hour sessions
+        const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); 
+        
+        await createAppointment({
+          patientId: input.patientId,
+          patientName: input.patientName,
+          therapistId: input.therapistId,
+          therapistName: input.therapistName,
+          startTime,
+          endTime,
+          status: 'confirmed',
+        });
+        console.log(
+          `Booking created for ${input.patientName} with ${input.therapistName} at ${input.dateTime}`
+        );
+        return true;
+    } catch(e) {
+        console.error('Error creating booking:', e);
+        return false;
+    }
   },
 });
 
@@ -61,8 +82,9 @@ const confirmBookingDetailsPrompt = ai.definePrompt({
   Date and Time: {{{dateTime}}}
 
   First, confirm these details to the user.
-  Then, use the createBooking tool to book the appointment.
+  Then, use the createBooking tool to book the appointment. You must pass all the input fields (patientId, patientName, therapistId, therapistName, dateTime) to the tool.
   Finally, generate a confirmation message for the user, and a boolean for whether the booking was successful.
+  If the booking tool fails, inform the user that there was an error and to try again.
   `,
 });
 
