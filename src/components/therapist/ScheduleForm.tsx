@@ -7,7 +7,7 @@ import * as z from 'zod';
 
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { getTherapistSchedule, saveTherapistSchedule } from '@/lib/firestore';
+import { getTherapistSchedule, saveTherapistSchedule, TherapistSchedule } from '@/lib/firestore';
 
 import {
   Form,
@@ -131,9 +131,15 @@ export function ScheduleForm() {
     }
 
     try {
-      const slots = generateSlots(result.data as any, previewDate, previewDate);
+      const { workingDaysType, ...scheduleData } = result.data;
+      const scheduleForPreview: TherapistSchedule = {
+        ...scheduleData,
+        mandatoryBreakMinutes: 15,
+      };
+      const slots = generateSlots(scheduleForPreview, previewDate, previewDate);
       setPreviewSlots(slots);
     } catch (e) {
+      console.error("Error generating preview slots:", e);
       setPreviewSlots([]);
     }
   }, [previewDate, watched]);
@@ -143,9 +149,15 @@ export function ScheduleForm() {
     if (!user) return;
     setIsSaving(true);
     try {
-      await saveTherapistSchedule(user.uid, values);
+      const { workingDaysType, ...scheduleData } = values;
+      const scheduleToSave = {
+        ...scheduleData,
+        mandatoryBreakMinutes: 15,
+      };
+      await saveTherapistSchedule(user.uid, scheduleToSave);
       toast({ title: 'Success', description: 'Schedule updated.' });
     } catch (error) {
+      console.error("Failed to save schedule:", error);
       toast({ title: 'Error', variant: 'destructive', description: 'Save failed.' });
     } finally {
       setIsSaving(false);
@@ -174,34 +186,38 @@ export function ScheduleForm() {
               render={({ field }) => (
                 <FormItem className="space-y-4">
                   <FormLabel>Working Days</FormLabel>
-                  <FormControl>
-                    <RadioGroup
-                      onValueChange={field.onChange}
-                      value={field.value}
-                      className="grid grid-cols-1 gap-2"
-                    >
-                      <div className="flex items-center space-x-3 space-y-0 border p-3 rounded-md hover:bg-zinc-50 cursor-pointer">
+                  <RadioGroup
+                    onValueChange={field.onChange}
+                    value={field.value}
+                    className="grid grid-cols-1 gap-2"
+                  >
+                    <div className="flex items-center space-x-3 space-y-0 border p-3 rounded-md hover:bg-zinc-50 cursor-pointer">
+                      <FormControl>
                         <RadioGroupItem value="weekdays" id="weekdays" />
-                        <Label htmlFor="weekdays" className="font-normal cursor-pointer w-full">
-                          Weekdays (Mon - Fri)
-                        </Label>
-                      </div>
-                      
-                      <div className="flex items-center space-x-3 space-y-0 border p-3 rounded-md hover:bg-zinc-50 cursor-pointer">
+                      </FormControl>
+                      <Label htmlFor="weekdays" className="font-normal cursor-pointer w-full">
+                        Weekdays (Mon - Fri)
+                      </Label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-3 space-y-0 border p-3 rounded-md hover:bg-zinc-50 cursor-pointer">
+                      <FormControl>
                         <RadioGroupItem value="weekends" id="weekends" />
-                        <Label htmlFor="weekends" className="font-normal cursor-pointer w-full">
-                          Weekends (Sat - Sun)
-                        </Label>
-                      </div>
+                      </FormControl>
+                      <Label htmlFor="weekends" className="font-normal cursor-pointer w-full">
+                        Weekends (Sat - Sun)
+                      </Label>
+                    </div>
 
-                      <div className="flex items-center space-x-3 space-y-0 border p-3 rounded-md hover:bg-zinc-50 cursor-pointer">
+                    <div className="flex items-center space-x-3 space-y-0 border p-3 rounded-md hover:bg-zinc-50 cursor-pointer">
+                       <FormControl>
                         <RadioGroupItem value="both" id="both" />
-                        <Label htmlFor="both" className="font-normal cursor-pointer w-full">
-                          Full Week (Mon - Sun)
-                        </Label>
-                      </div>
-                    </RadioGroup>
-                  </FormControl>
+                      </FormControl>
+                      <Label htmlFor="both" className="font-normal cursor-pointer w-full">
+                        Full Week (Mon - Sun)
+                      </Label>
+                    </div>
+                  </RadioGroup>
                   <FormMessage />
                 </FormItem>
               )}
