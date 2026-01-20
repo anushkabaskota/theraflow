@@ -1,12 +1,32 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
 import { Logo } from '@/components/Logo';
 import { useAuth } from '@/hooks/useAuth';
-import { signInWithGoogle } from '@/lib/auth';
+import { signInWithGoogle, signInWithEmail, signUpWithEmail } from '@/lib/auth';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react';
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg
@@ -35,9 +55,25 @@ const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
+const formSchema = z.object({
+  email: z.string().email({ message: 'Please enter a valid email.' }),
+  password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
+});
+
+type FormValues = z.infer<typeof formSchema>;
+
 export default function LoginPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isOauthSubmitting, setIsOauthSubmitting] = useState(false);
+  const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
+
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: { email: '', password: '' },
+  });
 
   useEffect(() => {
     if (!loading && user) {
@@ -45,28 +81,155 @@ export default function LoginPage() {
     }
   }, [user, loading, router]);
 
-  if (loading || user) {
+  const handleGoogleSignIn = async () => {
+    setIsOauthSubmitting(true);
+    try {
+        await signInWithGoogle();
+    } catch (error: any) {
+        toast({
+            title: 'Authentication Error',
+            description: error.message || 'Could not sign in with Google.',
+            variant: 'destructive',
+        });
+        setIsOauthSubmitting(false);
+    }
+  }
+
+  const handleEmailAuth = async (data: FormValues) => {
+    setIsSubmitting(true);
+    try {
+      if (authMode === 'signin') {
+        await signInWithEmail(data.email, data.password);
+      } else {
+        await signUpWithEmail(data.email, data.password);
+        toast({
+          title: 'Account Created!',
+          description: 'You can now sign in.',
+        });
+        setAuthMode('signin');
+        form.reset();
+      }
+    } catch (error: any) {
+      let description = 'An unexpected error occurred.';
+      if (error.code) {
+        switch(error.code) {
+          case 'auth/user-not-found':
+          case 'auth/invalid-credential':
+            description = 'Incorrect email or password. Please try again.';
+            break;
+          case 'auth/wrong-password':
+            description = 'Incorrect password. Please try again.';
+            break;
+          case 'auth/email-already-in-use':
+            description = 'An account with this email already exists.';
+            break;
+          default:
+            description = error.message;
+        }
+      }
+      toast({
+        title: 'Authentication Error',
+        description,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (loading || (user && !isOauthSubmitting)) {
     return null;
   }
 
+  const anySubmitting = isSubmitting || isOauthSubmitting;
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-secondary">
+    <div className="flex min-h-screen items-center justify-center bg-secondary p-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="flex flex-col items-center justify-center text-center p-6">
           <Logo />
-          <p className="text-muted-foreground pt-2">
-            Welcome to TheraFlow
-          </p>
+          <CardTitle className="pt-4 text-2xl font-bold">
+            {authMode === 'signin' ? 'Sign In' : 'Create an Account'}
+          </CardTitle>
+          <CardDescription>
+            to continue to TheraFlow
+          </CardDescription>
         </CardHeader>
         <CardContent className="p-6 pt-0">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleEmailAuth)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input placeholder="name@example.com" {...field} disabled={anySubmitting}/>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Password</FormLabel>
+                    <FormControl>
+                      <Input type="password" placeholder="••••••••" {...field} disabled={anySubmitting} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button type="submit" className="w-full" disabled={anySubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {authMode === 'signin' ? 'Sign In' : 'Create Account'}
+              </Button>
+            </form>
+          </Form>
+
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">
+                Or continue with
+              </span>
+            </div>
+          </div>
+
           <Button
             variant="outline"
             className="w-full"
-            onClick={() => signInWithGoogle()}
+            onClick={handleGoogleSignIn}
+            disabled={anySubmitting}
           >
-            <GoogleIcon className="mr-2" />
-            Sign in with Google
+            {isOauthSubmitting ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <GoogleIcon className="mr-2" />
+            )}
+            Google
           </Button>
+
+          <p className="mt-6 text-center text-sm text-muted-foreground">
+            {authMode === 'signin' ? "Don't have an account? " : "Already have an account? "}
+            <Button
+              variant="link"
+              className="p-0 h-auto"
+              onClick={() => {
+                setAuthMode(authMode === 'signin' ? 'signup' : 'signin');
+                form.reset();
+              }}
+              disabled={anySubmitting}
+            >
+              {authMode === 'signin' ? 'Sign up' : 'Sign in'}
+            </Button>
+          </p>
         </CardContent>
       </Card>
     </div>
