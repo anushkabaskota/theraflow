@@ -150,7 +150,7 @@ export function ScheduleForm() {
     setIsSaving(true);
     try {
       const { workingDaysType, ...scheduleData } = values;
-      const scheduleToSave = {
+      const scheduleToSave: TherapistSchedule = {
         ...scheduleData,
         mandatoryBreakMinutes: 15,
       };
@@ -186,38 +186,34 @@ export function ScheduleForm() {
               render={({ field }) => (
                 <FormItem className="space-y-4">
                   <FormLabel>Working Days</FormLabel>
-                  <RadioGroup
-                    onValueChange={field.onChange}
-                    value={field.value}
-                    className="grid grid-cols-1 gap-2"
-                  >
-                    <div className="flex items-center space-x-3 space-y-0 border p-3 rounded-md hover:bg-zinc-50 cursor-pointer">
-                      <FormControl>
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      className="grid grid-cols-1 gap-2"
+                    >
+                      <div className="flex items-center space-x-3 space-y-0 border p-3 rounded-md hover:bg-zinc-50 cursor-pointer">
                         <RadioGroupItem value="weekdays" id="weekdays" />
-                      </FormControl>
-                      <Label htmlFor="weekdays" className="font-normal cursor-pointer w-full">
-                        Weekdays (Mon - Fri)
-                      </Label>
-                    </div>
-                    
-                    <div className="flex items-center space-x-3 space-y-0 border p-3 rounded-md hover:bg-zinc-50 cursor-pointer">
-                      <FormControl>
+                        <Label htmlFor="weekdays" className="font-normal cursor-pointer w-full">
+                          Weekdays (Mon - Fri)
+                        </Label>
+                      </div>
+                      
+                      <div className="flex items-center space-x-3 space-y-0 border p-3 rounded-md hover:bg-zinc-50 cursor-pointer">
                         <RadioGroupItem value="weekends" id="weekends" />
-                      </FormControl>
-                      <Label htmlFor="weekends" className="font-normal cursor-pointer w-full">
-                        Weekends (Sat - Sun)
-                      </Label>
-                    </div>
+                        <Label htmlFor="weekends" className="font-normal cursor-pointer w-full">
+                          Weekends (Sat - Sun)
+                        </Label>
+                      </div>
 
-                    <div className="flex items-center space-x-3 space-y-0 border p-3 rounded-md hover:bg-zinc-50 cursor-pointer">
-                       <FormControl>
-                        <RadioGroupItem value="both" id="both" />
-                      </FormControl>
-                      <Label htmlFor="both" className="font-normal cursor-pointer w-full">
-                        Full Week (Mon - Sun)
-                      </Label>
-                    </div>
-                  </RadioGroup>
+                      <div className="flex items-center space-x-3 space-y-0 border p-3 rounded-md hover:bg-zinc-50 cursor-pointer">
+                         <RadioGroupItem value="both" id="both" />
+                        <Label htmlFor="both" className="font-normal cursor-pointer w-full">
+                          Full Week (Mon - Sun)
+                        </Label>
+                      </div>
+                    </RadioGroup>
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
