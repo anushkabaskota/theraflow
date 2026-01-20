@@ -1,3 +1,22 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "therapist-avatar",
+      "description": "Avatar for a therapist",
+      "imageUrl": "https://images.unsplash.com/photo-1592621385612-4d7129426394?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHx3b21hbiUyMHNtaWxpbmd8ZW58MHx8fHwxNzY4ODU2MTAwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman smiling"
+    },
+    {
+      "id": "patient-avatar",
+      "description": "Avatar for a patient",
+      "imageUrl": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxtYW4lMjBwcm9maWxlfGVufDB8fHx8MTc2ODg1NjIxNHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "man profile"
+    },
+    {
+      "id": "ai-avatar",
+      "description": "Avatar for the AI assistant",
+      "imageUrl": "https://images.unsplash.com/photo-1720802703710-5a2f1dbb2f8f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8YWJzdHJhY3QlMjByb2JvdHxlbnwwfHx8fDE3Njg4ODIzMDJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "abstract robot"
+    }
+  ]
 }
