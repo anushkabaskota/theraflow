@@ -8,7 +8,7 @@ import {
   Calendar,
   Home,
   MessageSquarePlus,
-  Users,
+  CalendarPlus,
 } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
 
@@ -25,6 +25,7 @@ export function SidebarNav({ onLinkClick }: { onLinkClick?: () => void }) {
   const therapistLinks = [
     { href: '/dashboard', label: 'Dashboard', icon: Home },
     { href: '/dashboard/appointments', label: 'Appointments', icon: Calendar },
+    { href: '/dashboard/availability', label: 'Set Availability', icon: CalendarPlus },
   ];
 
   const links = profile?.role === 'patient' ? patientLinks : therapistLinks;

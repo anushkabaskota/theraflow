@@ -11,9 +11,9 @@ import {
 } from 'firebase/firestore';
 import { db, auth } from './firebase';
 import type { User } from 'firebase/auth';
-import type { Appointment, UserProfile } from '@/types';
+import type { Appointment, UserProfile, TherapistAvailability } from '@/types';
 
-export { type UserProfile, type Appointment };
+export { type UserProfile, type Appointment, type TherapistAvailability };
 
 export async function getUserProfile(
   uid: string
@@ -95,4 +95,48 @@ export async function getAppointmentsForUser(
   });
   
   return appointments.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+}
+
+export async function getTherapistAvailability(
+  therapistId: string
+): Promise<Date[]> {
+  const availabilityDocRef = doc(db, 'availability', therapistId);
+  const availabilityDocSnap = await getDoc(availabilityDocRef);
+
+  if (availabilityDocSnap.exists()) {
+    const data = availabilityDocSnap.data();
+    // Ensure availableSlots exists and is an array
+    if (data.availableSlots && Array.isArray(data.availableSlots)) {
+        return (data.availableSlots as Timestamp[]).map(t => t.toDate());
+    }
+  }
+  return [];
+}
+
+export async function setTherapistAvailability(
+  therapistId: string,
+  slots: Date[]
+): Promise<void> {
+  const availabilityDocRef = doc(db, 'availability', therapistId);
+  
+  const availabilityDocSnap = await getDoc(availabilityDocRef);
+  const existingSlots: Timestamp[] = availabilityDocSnap.exists()
+    ? availabilityDocSnap.data().availableSlots || []
+    : [];
+
+  const newSlotsInTimestamps = slots.map(s => Timestamp.fromDate(s));
+
+  const allSlots = [...existingSlots];
+  newSlotsInTimestamps.forEach(newSlot => {
+    if (!allSlots.some(existingSlot => existingSlot.isEqual(newSlot))) {
+      allSlots.push(newSlot);
+    }
+  });
+
+  allSlots.sort((a, b) => a.toMillis() - b.toMillis());
+
+  await setDoc(availabilityDocRef, { 
+    therapistId, 
+    availableSlots: allSlots
+  }, { merge: true });
 }

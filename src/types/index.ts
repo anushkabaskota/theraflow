@@ -17,6 +17,11 @@ export type Appointment = {
   status: 'confirmed' | 'cancelled';
 };
 
+export type TherapistAvailability = {
+  therapistId: string;
+  availableSlots: Date[];
+};
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';

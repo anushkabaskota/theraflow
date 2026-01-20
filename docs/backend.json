@@ -27,6 +27,19 @@
         "status": { "type": "string", "enum": ["confirmed", "cancelled"] }
       },
       "required": ["patientId", "therapistId", "startTime", "endTime", "status"]
+    },
+    "TherapistAvailability": {
+      "title": "Therapist Availability",
+      "description": "Stores a therapist's available time slots.",
+      "type": "object",
+      "properties": {
+        "therapistId": { "type": "string" },
+        "availableSlots": {
+          "type": "array",
+          "items": { "type": "string", "format": "date-time" }
+        }
+      },
+      "required": ["therapistId", "availableSlots"]
     }
   },
   "auth": {
@@ -40,6 +53,10 @@
     "/appointments/{appointmentId}": {
       "schema": { "$ref": "#/entities/Appointment" },
       "description": "Appointment documents."
+    },
+    "/availability/{therapistId}": {
+      "schema": { "$ref": "#/entities/TherapistAvailability" },
+      "description": "Therapist availability documents, keyed by therapist ID."
     }
   }
 }
