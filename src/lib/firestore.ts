@@ -8,12 +8,15 @@ import {
   where,
   getDocs,
   Timestamp,
+  serverTimestamp,
 } from 'firebase/firestore';
 import { db, auth } from './firebase';
 import type { User } from 'firebase/auth';
-import type { Appointment, UserProfile, TherapistAvailability } from '@/types';
+import type { Appointment, UserProfile, TherapistSchedule, TherapistScheduleFromDB } from '@/types';
+import { generateSlots } from './schedule';
+import { parseISO, startOfDay, endOfDay } from 'date-fns';
 
-export { type UserProfile, type Appointment, type TherapistAvailability };
+export { type UserProfile, type Appointment, type TherapistSchedule };
 
 export async function getUserProfile(
   uid: string
@@ -97,46 +100,70 @@ export async function getAppointmentsForUser(
   return appointments.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
 }
 
-export async function getTherapistAvailability(
-  therapistId: string
-): Promise<Date[]> {
-  const availabilityDocRef = doc(db, 'availability', therapistId);
-  const availabilityDocSnap = await getDoc(availabilityDocRef);
 
-  if (availabilityDocSnap.exists()) {
-    const data = availabilityDocSnap.data();
-    // Ensure availableSlots exists and is an array
-    if (data.availableSlots && Array.isArray(data.availableSlots)) {
-        return (data.availableSlots as Timestamp[]).map(t => t.toDate());
+export async function getTherapistSchedule(therapistId: string): Promise<TherapistScheduleFromDB | null> {
+    const scheduleDocRef = doc(db, 'therapists', therapistId, 'schedule', 'default');
+    const scheduleDocSnap = await getDoc(scheduleDocRef);
+    if (scheduleDocSnap.exists()) {
+        return scheduleDocSnap.data() as TherapistScheduleFromDB;
     }
-  }
-  return [];
+    return null;
 }
 
-export async function setTherapistAvailability(
+export async function saveTherapistSchedule(therapistId: string, schedule: TherapistSchedule): Promise<void> {
+    const scheduleDocRef = doc(db, 'therapists', therapistId, 'schedule', 'default');
+    const scheduleToSave = {
+        ...schedule,
+        manualSlots: schedule.manualSlots?.map(slot => ({
+            start: Timestamp.fromDate(slot.start),
+            end: Timestamp.fromDate(slot.end),
+        })) || [],
+        updatedAt: serverTimestamp(),
+    };
+    await setDoc(scheduleDocRef, scheduleToSave, { merge: true });
+}
+
+
+export async function getAvailableSlots(
   therapistId: string,
-  slots: Date[]
-): Promise<void> {
-  const availabilityDocRef = doc(db, 'availability', therapistId);
+  startDateStr: string,
+  endDateStr: string
+): Promise<Date[]> {
+  const schedule = await getTherapistSchedule(therapistId);
+  if (!schedule) {
+    return [];
+  }
+
+  const startDate = startOfDay(parseISO(startDateStr));
+  const endDate = endOfDay(parseISO(endDateStr));
+
+  // 1. Generate slots based on rules
+  const generated = generateSlots(schedule as TherapistSchedule, startDate, endDate);
+
+  // 2. Add manual one-off slots that are within the date range
+  const manual = (schedule.manualSlots || [])
+    .map(slot => slot.start.toDate())
+    .filter(slotDate => slotDate >= startDate && slotDate <= endDate);
+
+  // 3. Get already booked appointments to filter out unavailable slots
+  const appointmentsCollectionRef = collection(db, 'appointments');
+  const q = query(
+    appointmentsCollectionRef,
+    where('therapistId', '==', therapistId),
+    where('startTime', '>=', startDate),
+    where('startTime', '<=', endDate)
+  );
+  const querySnapshot = await getDocs(q);
+  const bookedStartTimes = new Set(
+    querySnapshot.docs.map(doc => (doc.data().startTime as Timestamp).toMillis())
+  );
+
+  // 4. Combine, de-duplicate, and filter
+  const allSlots = [...generated, ...manual];
+  const uniqueSlots = Array.from(new Set(allSlots.map(d => d.getTime())))
+                           .map(time => new Date(time));
+
+  const availableSlots = uniqueSlots.filter(slot => !bookedStartTimes.has(slot.getTime()));
   
-  const availabilityDocSnap = await getDoc(availabilityDocRef);
-  const existingSlots: Timestamp[] = availabilityDocSnap.exists()
-    ? availabilityDocSnap.data().availableSlots || []
-    : [];
-
-  const newSlotsInTimestamps = slots.map(s => Timestamp.fromDate(s));
-
-  const allSlots = [...existingSlots];
-  newSlotsInTimestamps.forEach(newSlot => {
-    if (!allSlots.some(existingSlot => existingSlot.isEqual(newSlot))) {
-      allSlots.push(newSlot);
-    }
-  });
-
-  allSlots.sort((a, b) => a.toMillis() - b.toMillis());
-
-  await setDoc(availabilityDocRef, { 
-    therapistId, 
-    availableSlots: allSlots
-  }, { merge: true });
+  return availableSlots.sort((a, b) => a.getTime() - b.getTime());
 }

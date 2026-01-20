@@ -25,7 +25,7 @@ export function SidebarNav({ onLinkClick }: { onLinkClick?: () => void }) {
   const therapistLinks = [
     { href: '/dashboard', label: 'Dashboard', icon: Home },
     { href: '/dashboard/appointments', label: 'Appointments', icon: Calendar },
-    { href: '/dashboard/availability', label: 'Set Availability', icon: CalendarPlus },
+    { href: '/dashboard/schedule', label: 'Schedule', icon: CalendarPlus },
   ];
 
   const links = profile?.role === 'patient' ? patientLinks : therapistLinks;

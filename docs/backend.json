@@ -28,18 +28,46 @@
       },
       "required": ["patientId", "therapistId", "startTime", "endTime", "status"]
     },
-    "TherapistAvailability": {
-      "title": "Therapist Availability",
-      "description": "Stores a therapist's available time slots.",
+    "TherapistSchedule": {
+      "title": "Therapist Schedule",
+      "description": "Stores a therapist's work schedule configuration.",
       "type": "object",
       "properties": {
-        "therapistId": { "type": "string" },
-        "availableSlots": {
+        "workingDays": {
           "type": "array",
-          "items": { "type": "string", "format": "date-time" }
-        }
-      },
-      "required": ["therapistId", "availableSlots"]
+          "items": { "type": "number" },
+          "description": "Array of numbers for working days (0=Sun, 1=Mon, ...)"
+        },
+        "workingHours": {
+          "type": "object",
+          "properties": {
+            "start": { "type": "string", "description": "Start time in HH:MM format." },
+            "end": { "type": "string", "description": "End time in HH:MM format." }
+          },
+          "required": ["start", "end"]
+        },
+        "sessionDurationMinutes": { "type": "number" },
+        "mandatoryBreakMinutes": { "type": "number", "default": 15 },
+        "lunchBreak": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "start": { "type": "string", "description": "Start time in HH:MM format." },
+            "end": { "type": "string", "description": "End time in HH:MM format." }
+          }
+        },
+        "manualSlots": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "start": { "type": "string", "format": "date-time" },
+              "end": { "type": "string", "format": "date-time" }
+            }
+          }
+        },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
     }
   },
   "auth": {
@@ -50,13 +78,13 @@
       "schema": { "$ref": "#/entities/UserProfile" },
       "description": "User profile documents, keyed by user ID."
     },
+    "/therapists/{therapistId}/schedule": {
+        "schema": { "$ref": "#/entities/TherapistSchedule" },
+        "description": "Therapist schedule documents, keyed by therapist ID."
+    },
     "/appointments/{appointmentId}": {
       "schema": { "$ref": "#/entities/Appointment" },
       "description": "Appointment documents."
-    },
-    "/availability/{therapistId}": {
-      "schema": { "$ref": "#/entities/TherapistAvailability" },
-      "description": "Therapist availability documents, keyed by therapist ID."
     }
   }
 }

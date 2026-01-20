@@ -11,8 +11,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { getTherapistAvailability as getSlotsFromDB } from '@/lib/firestore';
-import { isWithinInterval, parseISO } from 'date-fns';
+import { getAvailableSlots as getSlotsFromDB } from '@/lib/firestore';
 
 const CheckTherapistAvailabilityInputSchema = z.object({
   therapistId: z.string().describe('The ID of the therapist.'),
@@ -32,9 +31,9 @@ export async function checkTherapistAvailability(
   return checkTherapistAvailabilityFlow(input);
 }
 
-const getAvailableSlots = ai.defineTool({
-  name: 'getAvailableSlots',
-  description: 'Retrieves available time slots from the database for a given therapist and date range.',
+const checkAvailabilityTool = ai.defineTool({
+  name: 'checkAvailabilityTool',
+  description: 'Retrieves available time slots from the database for a given therapist and date range based on their schedule.',
   inputSchema: z.object({
     therapistId: z.string().describe('The ID of the therapist.'),
     startDate: z.string().describe('The start date for availability check (ISO format).'),
@@ -44,16 +43,9 @@ const getAvailableSlots = ai.defineTool({
 }, async (input) => {
   console.log(`Checking DB availability for therapist ${input.therapistId} from ${input.startDate} to ${input.endDate}`);
   
-  const allSlots = await getSlotsFromDB(input.therapistId);
-  
-  const start = parseISO(input.startDate);
-  const end = parseISO(input.endDate);
+  const slots = await getSlotsFromDB(input.therapistId, input.startDate, input.endDate);
 
-  const filteredSlots = allSlots.filter(slot => 
-    isWithinInterval(slot, { start, end })
-  );
-
-  return filteredSlots.map(slot => slot.toISOString());
+  return slots.map(slot => slot.toISOString());
 });
 
 const checkTherapistAvailabilityFlow = ai.defineFlow(
@@ -63,7 +55,7 @@ const checkTherapistAvailabilityFlow = ai.defineFlow(
     outputSchema: CheckTherapistAvailabilityOutputSchema,
   },
   async input => {
-    const availableSlots = await getAvailableSlots(input);
+    const availableSlots = await checkAvailabilityTool(input);
 
     return {
       availableSlots,
