@@ -9,6 +9,7 @@ import {
   getDocs,
   Timestamp,
   serverTimestamp,
+  onSnapshot,
 } from 'firebase/firestore';
 import { db, auth } from './firebase';
 import type { User } from 'firebase/auth';
@@ -98,6 +99,35 @@ export async function getAppointmentsForUser(
   });
   
   return appointments.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+}
+
+export function listenForAppointments(
+  userId: string,
+  role: 'patient' | 'therapist',
+  callback: (appointments: Appointment[]) => void
+): () => void {
+  const appointmentsCollectionRef = collection(db, 'appointments');
+  const roleField = role === 'patient' ? 'patientId' : 'therapistId';
+  
+  const q = query(appointmentsCollectionRef, where(roleField, '==', userId));
+
+  const unsubscribe = onSnapshot(q, (querySnapshot) => {
+    const appointments: Appointment[] = [];
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      appointments.push({
+        id: doc.id,
+        ...data,
+        startTime: (data.startTime as Timestamp).toDate(),
+        endTime: (data.endTime as Timestamp).toDate(),
+      } as Appointment);
+    });
+    
+    const sortedAppointments = appointments.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+    callback(sortedAppointments);
+  });
+  
+  return unsubscribe;
 }
 
 

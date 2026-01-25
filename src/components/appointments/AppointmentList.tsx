@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { getAppointmentsForUser, Appointment } from '@/lib/firestore';
+import { listenForAppointments, Appointment } from '@/lib/firestore';
 import {
   Card,
   CardContent,
@@ -64,14 +64,14 @@ export function AppointmentList() {
   useEffect(() => {
     if (user && profile?.role) {
       setLoading(true);
-      getAppointmentsForUser(user.uid, profile.role)
-        .then((apps) => {
-          setAppointments(apps);
-          setLoading(false);
-        })
-        .catch(() => {
-          setLoading(false);
-        });
+      const unsubscribe = listenForAppointments(user.uid, profile.role, (apps) => {
+        setAppointments(apps);
+        setLoading(false);
+      });
+      return () => unsubscribe();
+    } else {
+      setLoading(false);
+      setAppointments([]);
     }
   }, [user, profile]);
 

@@ -4,11 +4,11 @@ import { useEffect, useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isSameDay } from 'date-fns';
 
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { getTherapistSchedule, saveTherapistSchedule, TherapistSchedule } from '@/lib/firestore';
+import { getTherapistSchedule, saveTherapistSchedule, TherapistSchedule, listenForAppointments } from '@/lib/firestore';
 
 import {
   Form,
@@ -87,8 +87,9 @@ export function ScheduleForm() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [previewDate, setPreviewDate] = useState<Date>();
+  const [previewDate, setPreviewDate] = useState<Date>(new Date());
   const [previewSlots, setPreviewSlots] = useState<Date[]>([]);
+  const [bookedSlots, setBookedSlots] = useState<Date[]>([]);
 
   const form = useForm<FormSchema>({
     resolver: zodResolver(scheduleSchema),
@@ -99,10 +100,6 @@ export function ScheduleForm() {
     control: form.control,
     name: "manualSlots",
   });
-
-  useEffect(() => {
-    setPreviewDate(new Date());
-  }, []);
 
   /* -------- Load Existing Schedule -------- */
   useEffect(() => {
@@ -142,6 +139,18 @@ export function ScheduleForm() {
     loadData();
   }, [user, form]);
 
+  /* -------- Listen for Appointments -------- */
+  useEffect(() => {
+    if (!user) return;
+
+    const unsubscribe = listenForAppointments(user.uid, 'therapist', (apps) => {
+        const bookedStartTimes = apps.map(app => app.startTime);
+        setBookedSlots(bookedStartTimes);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
   /* -------- Update Working Days based on Radio Selection -------- */
   const workingDaysType = form.watch('workingDaysType');
 
@@ -157,10 +166,10 @@ export function ScheduleForm() {
   }, [workingDaysType, form]);
 
   /* -------- Handle Preview Logic -------- */
-  const watched = form.watch();
-  const watchedValuesString = JSON.stringify(watched);
+  const watchedValuesString = JSON.stringify(form.watch());
 
   useEffect(() => {
+    const watched = form.getValues();
     const result = scheduleSchema.safeParse(watched);
     if (!result.success || !previewDate) {
       setPreviewSlots([]);
@@ -180,13 +189,18 @@ export function ScheduleForm() {
         mandatoryBreakMinutes: 15,
       };
       const slots = generateSlots(scheduleForPreview, previewDate, previewDate);
-      setPreviewSlots(slots);
+      
+      const bookedTimesForPreviewDate = new Set(
+        bookedSlots.filter(date => isSameDay(date, previewDate)).map(d => d.getTime())
+      );
+      const availableSlots = slots.filter(slot => !bookedTimesForPreviewDate.has(slot.getTime()));
+      
+      setPreviewSlots(availableSlots);
     } catch (e) {
       console.error("Error generating preview slots:", e);
       setPreviewSlots([]);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [previewDate, watchedValuesString]);
+  }, [previewDate, watchedValuesString, bookedSlots, form]);
 
   /* -------- Submit Handler -------- */
   const onSubmit = async (values: FormSchema) => {
@@ -244,15 +258,17 @@ export function ScheduleForm() {
                           className="grid grid-cols-1 sm:grid-cols-3 gap-4"
                         >
                           {(['weekdays', 'weekends', 'both'] as const).map((type) => (
-                            <div key={type}>
-                              <RadioGroupItem value={type} id={type} className="peer sr-only" />
-                              <Label
-                                htmlFor={type}
-                                className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
-                              >
-                                {type.charAt(0).toUpperCase() + type.slice(1)}
-                              </Label>
-                            </div>
+                            <FormItem key={type} className="flex-1">
+                                <FormControl>
+                                    <RadioGroupItem value={type} id={type} className="peer sr-only" />
+                                </FormControl>
+                                <Label
+                                    htmlFor={type}
+                                    className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer h-full"
+                                >
+                                    {type.charAt(0).toUpperCase() + type.slice(1)}
+                                </Label>
+                            </FormItem>
                           ))}
                         </RadioGroup>
                       </FormControl>
