@@ -11,10 +11,10 @@ import { getTherapistSchedule, saveTherapistSchedule, TherapistSchedule } from '
 
 import {
   Form,
+  FormControl,
   FormField,
   FormItem,
   FormLabel,
-  FormControl,
   FormMessage,
 } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
@@ -122,6 +122,9 @@ export function ScheduleForm() {
 
   /* -------- Handle Preview Logic -------- */
   const watched = form.watch();
+  // By stringifying the watched values, we create a stable dependency
+  // for the useEffect hook, preventing infinite re-renders.
+  const watchedValuesString = JSON.stringify(watched);
 
   useEffect(() => {
     const result = scheduleSchema.safeParse(watched);
@@ -142,7 +145,8 @@ export function ScheduleForm() {
       console.error("Error generating preview slots:", e);
       setPreviewSlots([]);
     }
-  }, [previewDate, watched]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previewDate, watchedValuesString]);
 
   /* -------- Submit Handler -------- */
   const onSubmit = async (values: z.infer<typeof scheduleSchema>) => {
@@ -192,26 +196,32 @@ export function ScheduleForm() {
                       value={field.value}
                       className="grid grid-cols-1 gap-2"
                     >
-                      <div className="flex items-center space-x-3 space-y-0 border p-3 rounded-md hover:bg-zinc-50 cursor-pointer">
-                        <RadioGroupItem value="weekdays" id="weekdays" />
+                      <FormItem className="flex items-center space-x-3 space-y-0 border p-3 rounded-md hover:bg-zinc-50 cursor-pointer">
+                        <FormControl>
+                          <RadioGroupItem value="weekdays" id="weekdays" />
+                        </FormControl>
                         <Label htmlFor="weekdays" className="font-normal cursor-pointer w-full">
                           Weekdays (Mon - Fri)
                         </Label>
-                      </div>
+                      </FormItem>
                       
-                      <div className="flex items-center space-x-3 space-y-0 border p-3 rounded-md hover:bg-zinc-50 cursor-pointer">
-                        <RadioGroupItem value="weekends" id="weekends" />
+                      <FormItem className="flex items-center space-x-3 space-y-0 border p-3 rounded-md hover:bg-zinc-50 cursor-pointer">
+                         <FormControl>
+                          <RadioGroupItem value="weekends" id="weekends" />
+                        </FormControl>
                         <Label htmlFor="weekends" className="font-normal cursor-pointer w-full">
                           Weekends (Sat - Sun)
                         </Label>
-                      </div>
+                      </FormItem>
 
-                      <div className="flex items-center space-x-3 space-y-0 border p-3 rounded-md hover:bg-zinc-50 cursor-pointer">
-                         <RadioGroupItem value="both" id="both" />
+                      <FormItem className="flex items-center space-x-3 space-y-0 border p-3 rounded-md hover:bg-zinc-50 cursor-pointer">
+                         <FormControl>
+                          <RadioGroupItem value="both" id="both" />
+                        </FormControl>
                         <Label htmlFor="both" className="font-normal cursor-pointer w-full">
                           Full Week (Mon - Sun)
                         </Label>
-                      </div>
+                      </FormItem>
                     </RadioGroup>
                   </FormControl>
                   <FormMessage />
