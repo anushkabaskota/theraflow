@@ -210,3 +210,8 @@ export async function getAvailableSlots(
   
   return availableSlots.sort((a, b) => a.getTime() - b.getTime());
 }
+
+export async function updateUserProfile(uid: string, data: Partial<UserProfile>): Promise<void> {
+  const userDocRef = doc(db, 'users', uid);
+  await setDoc(userDocRef, data, { merge: true });
+}
