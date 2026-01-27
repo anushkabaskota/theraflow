@@ -13,7 +13,7 @@ import {
 } from 'firebase/firestore';
 import { db, auth } from './firebase';
 import type { User } from 'firebase/auth';
-import type { Appointment, UserProfile, TherapistSchedule, TherapistScheduleFromDB } from '@/types';
+import type { Appointment, UserProfile, TherapistSchedule, TherapistScheduleFromDB, UserRole } from '@/types';
 import { generateSlots } from './schedule';
 import { parseISO, startOfDay, endOfDay } from 'date-fns';
 
@@ -34,7 +34,7 @@ export async function getUserProfile(
 
 export async function createUserProfile(
   user: User,
-  role: 'patient' | 'therapist'
+  role: UserRole
 ): Promise<UserProfile> {
   const userDocRef = doc(db, 'users', user.uid);
   const userProfile: UserProfile = {
@@ -44,19 +44,28 @@ export async function createUserProfile(
     photoURL: user.photoURL,
     role: role,
   };
+
+  if (role === 'trainee') {
+    userProfile.supervisionStatus = 'unsupervised';
+  }
+
   await setDoc(userDocRef, userProfile);
   return userProfile;
 }
 
 export async function setUserRole(
   uid: string,
-  role: 'patient' | 'therapist'
+  role: UserRole
 ): Promise<void> {
   const userDocRef = doc(db, 'users', uid);
   const userProfile = await getUserProfile(uid);
 
   if (userProfile) {
-    await setDoc(userDocRef, { ...userProfile, role }, { merge: true });
+    const updatedProfile: UserProfile = { ...userProfile, role };
+    if (role === 'trainee' && !userProfile.supervisionStatus) {
+      updatedProfile.supervisionStatus = 'unsupervised';
+    }
+    await setDoc(userDocRef, updatedProfile, { merge: true });
   } else {
     // This case should ideally not happen if profile is created on signup
     const user = auth.currentUser;
@@ -103,13 +112,17 @@ export async function getAppointmentsForUser(
 
 export function listenForAppointments(
   userId: string,
-  role: 'patient' | 'therapist',
+  role: 'patient' | 'therapist' | 'trainee' | 'supervisor',
   callback: (appointments: Appointment[]) => void
 ): () => void {
   const appointmentsCollectionRef = collection(db, 'appointments');
-  const roleField = role === 'patient' ? 'patientId' : 'therapistId';
   
-  const q = query(appointmentsCollectionRef, where(roleField, '==', userId));
+  let q;
+  if (role === 'patient') {
+    q = query(appointmentsCollectionRef, where('patientId', '==', userId));
+  } else {
+    q = query(appointmentsCollectionRef, where('therapistId', '==', userId));
+  }
 
   const unsubscribe = onSnapshot(q, (querySnapshot) => {
     const appointments: Appointment[] = [];

@@ -3,26 +3,53 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Users can read and write to their own profile.
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
     }
 
-    // Rules for appointments
+    function isSupervisor() {
+      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'supervisor';
+    }
+    
+    function isTrainee() {
+      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'trainee';
+    }
+
+    // User Profile Rules
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow create: if isOwner(userId);
+      // A user can update their own profile, but cannot change their role or supervision status.
+      // A supervisor can update a trainee's supervision status.
+      allow update: if request.auth != null && (
+        (isOwner(userId) && request.resource.data.role == resource.data.role && request.resource.data.supervisionStatus == resource.data.supervisionStatus) ||
+        (isSupervisor() && get(/databases/$(database)/documents/users/$(userId)).data.role == 'trainee' && request.resource.data.supervisorId == request.auth.uid)
+      );
+    }
+    
+    // Supervision Request Rules
+    match /supervisionRequests/{requestId} {
+      allow read: if isOwner(resource.data.traineeId) || isOwner(resource.data.supervisorId);
+      allow create: if isTrainee() && isOwner(request.resource.data.traineeId);
+      allow update: if isSupervisor() && isOwner(resource.data.supervisorId);
+    }
+
+    // Appointment Rules
     match /appointments/{appointmentId} {
-      // Anyone authenticated can create an appointment, but only for themselves.
       allow create: if request.auth != null && request.auth.uid == request.resource.data.patientId;
-      
-      // The patient or the therapist can read the appointment details.
       allow read: if request.auth != null && (request.auth.uid == resource.data.patientId || request.auth.uid == resource.data.therapistId);
       
       // Appointments cannot be updated or deleted by clients for now
       allow update, delete: if false;
     }
     
-    // Therapists can manage their own schedule
+    // Schedule Rules
     match /therapists/{therapistId}/schedule {
-      allow read, write: if request.auth != null && request.auth.uid == therapistId;
+      // Therapists or approved trainees can manage their own schedule.
+      allow read, write: if request.auth != null && isOwner(therapistId) &&
+                          (get(/databases/$(database)/documents/users/$(therapistId)).data.role == 'therapist' ||
+                          (get(/databases/$(database)/documents/users/$(therapistId)).data.role == 'trainee' &&
+                           get(/databases/$(database)/documents/users/$(therapistId)).data.supervisionStatus == 'approved'));
     }
   }
 }

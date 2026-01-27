@@ -9,7 +9,19 @@
         "email": { "type": "string", "format": "email", "description": "The user's email address." },
         "displayName": { "type": "string", "description": "The user's display name." },
         "photoURL": { "type": "string", "format": "uri", "description": "URL of the user's profile picture." },
-        "role": { "type": "string", "enum": ["patient", "therapist"], "description": "The user's role in the application." }
+        "role": { "type": "string", "enum": ["patient", "therapist", "trainee", "supervisor"], "description": "The user's role in the application." },
+        "supervisionStatus": {
+          "type": "string",
+          "enum": ["unsupervised", "pending", "approved", "revoked"],
+          "description": "Supervision status for trainees."
+        },
+        "supervisorId": { "type": "string", "description": "The UID of the supervising therapist." },
+        "licenseNumber": { "type": "string", "description": "License number for supervisors." },
+        "degree": { "type": "string", "description": "Degree obtained by the trainee." },
+        "institution": { "type": "string", "description": "Institution where the degree was obtained." },
+        "graduationYear": { "type": "number", "description": "Year of graduation." },
+        "bio": { "type": "string", "description": "A short biography." },
+        "areasOfInterest": { "type": "array", "items": { "type": "string" }, "description": "Areas of interest for trainees." }
       },
       "required": ["uid", "email", "role"]
     },
@@ -68,6 +80,20 @@
         },
         "updatedAt": { "type": "string", "format": "date-time" }
       }
+    },
+    "SupervisionRequest": {
+      "title": "Supervision Request",
+      "description": "A request from a trainee to a supervisor for supervision.",
+      "type": "object",
+      "properties": {
+        "traineeId": { "type": "string" },
+        "supervisorId": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "message": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["traineeId", "supervisorId", "status", "createdAt"]
     }
   },
   "auth": {
@@ -80,11 +106,15 @@
     },
     "/therapists/{therapistId}/schedule": {
         "schema": { "$ref": "#/entities/TherapistSchedule" },
-        "description": "Therapist schedule documents, keyed by therapist ID."
+        "description": "Therapist and approved trainee schedule documents, keyed by user ID."
     },
     "/appointments/{appointmentId}": {
       "schema": { "$ref": "#/entities/Appointment" },
       "description": "Appointment documents."
+    },
+    "/supervisionRequests/{requestId}": {
+      "schema": { "$ref": "#/entities/SupervisionRequest" },
+      "description": "Supervision request documents."
     }
   }
 }

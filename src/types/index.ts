@@ -1,11 +1,24 @@
 import type { Timestamp } from 'firebase/firestore';
 
+export type UserRole = 'patient' | 'therapist' | 'trainee' | 'supervisor';
+export type SupervisionStatus = 'unsupervised' | 'pending' | 'approved' | 'revoked';
+
 export type UserProfile = {
   uid: string;
   email: string | null;
   displayName: string | null;
   photoURL: string | null;
-  role: 'patient' | 'therapist' | null;
+  role: UserRole | null;
+  // Trainee fields
+  supervisionStatus?: SupervisionStatus;
+  supervisorId?: string;
+  degree?: string;
+  institution?: string;
+  graduationYear?: number;
+  bio?: string;
+  areasOfInterest?: string[];
+  // Supervisor fields
+  licenseNumber?: string;
 };
 
 export type Appointment = {
@@ -48,3 +61,13 @@ export interface ChatMessage {
   content: React.ReactNode;
   
 }
+
+export type SupervisionRequest = {
+  id: string;
+  traineeId: string;
+  supervisorId: string;
+  status: 'pending' | 'approved' | 'rejected';
+  message: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
