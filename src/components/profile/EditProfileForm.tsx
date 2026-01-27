@@ -22,9 +22,11 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2 } from 'lucide-react';
 import { useState } from 'react';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
 const profileSchema = z.object({
   displayName: z.string().min(2, 'Display name must be at least 2 characters.'),
+  photoURL: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
   bio: z.string().max(500, 'Bio cannot exceed 500 characters.').optional(),
   // Trainee fields
   degree: z.string().optional(),
@@ -48,6 +50,7 @@ export function EditProfileForm({ onFinished }: EditProfileFormProps) {
 
   const defaultValues: Partial<ProfileFormValues> = {
     displayName: profile?.displayName || '',
+    photoURL: profile?.photoURL || '',
     bio: profile?.bio || '',
     degree: profile?.degree || '',
     institution: profile?.institution || '',
@@ -61,6 +64,13 @@ export function EditProfileForm({ onFinished }: EditProfileFormProps) {
     defaultValues,
   });
 
+  const getInitials = (name?: string | null) => {
+    if (!name) return 'U';
+    return name.split(' ').map((n) => n[0]).slice(0, 2).join('');
+  };
+  
+  const avatarPreviewUrl = form.watch('photoURL');
+
   const onSubmit = async (data: ProfileFormValues) => {
     if (!user) return;
 
@@ -69,6 +79,7 @@ export function EditProfileForm({ onFinished }: EditProfileFormProps) {
       const areasOfInterestArray = data.areasOfInterest?.split(',').map(s => s.trim()).filter(Boolean) || [];
       const updateData: Partial<UserProfile> = {
         displayName: data.displayName,
+        photoURL: data.photoURL,
         bio: data.bio,
       };
 
@@ -104,6 +115,28 @@ export function EditProfileForm({ onFinished }: EditProfileFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <div className="flex items-center gap-6">
+          <Avatar className="h-16 w-16">
+            <AvatarImage src={avatarPreviewUrl || profile?.photoURL || undefined} />
+            <AvatarFallback className="text-2xl">
+              {getInitials(profile?.displayName)}
+            </AvatarFallback>
+          </Avatar>
+           <FormField
+            control={form.control}
+            name="photoURL"
+            render={({ field }) => (
+              <FormItem className="flex-grow">
+                <FormLabel>Profile Picture URL</FormLabel>
+                <FormControl>
+                  <Input placeholder="https://example.com/image.png" {...field} value={field.value ?? ''} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+        
         <FormField
           control={form.control}
           name="displayName"
