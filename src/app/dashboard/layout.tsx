@@ -13,7 +13,7 @@ import {
   SheetContent,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function DashboardLayout({
   children,
@@ -24,12 +24,13 @@ export default function DashboardLayout({
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  if (loading) {
-    return <Loading />;
-  }
+  useEffect(() => {
+    if (!loading && (!user || !profile?.role)) {
+      router.replace('/');
+    }
+  }, [user, profile, loading, router]);
 
-  if (!user || !profile?.role) {
-    router.replace('/');
+  if (loading || !user || !profile?.role) {
     return <Loading />;
   }
 
