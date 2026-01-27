@@ -15,9 +15,11 @@ import { useAuth } from '@/hooks/useAuth';
 import { signOut } from '@/lib/auth';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { LogOut, User } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 export function UserNav() {
   const { user, profile } = useAuth();
+  const router = useRouter();
   const avatarImage =
     profile?.photoURL ||
     (profile?.role === 'therapist'
@@ -56,7 +58,7 @@ export function UserNav() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem disabled>
+          <DropdownMenuItem onClick={() => router.push('/dashboard/profile')}>
             <User className="mr-2 h-4 w-4" />
             <span>Profile</span>
           </DropdownMenuItem>
