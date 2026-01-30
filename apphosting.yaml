@@ -1,4 +1,4 @@
-# Settings to manage and configure a Firebase App Hosting backend.
+# Settings to manage and configure a Firebase App Hosting backend
 
 runConfig:
   # increase this value if you'd like to automatically spin up
