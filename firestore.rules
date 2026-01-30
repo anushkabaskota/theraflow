@@ -16,7 +16,7 @@ service cloud.firestore {
       // The patient or the therapist can read the appointment details.
       allow read: if request.auth != null && (request.auth.uid == resource.data.patientId || request.auth.uid == resource.data.therapistId);
       
-      // Appointments cannot be updated or deleted by clients for now.
+      // Appointments cannot be updated or deleted by clients for now
       allow update, delete: if false;
     }
     
