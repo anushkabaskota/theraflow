@@ -4,6 +4,7 @@ import './globals.css';
 import { cn } from '@/lib/utils';
 import { Providers } from './providers';
 import { Toaster } from '@/components/ui/toaster';
+import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -26,6 +27,7 @@ export default function RootLayout({
         )}
       >
         <Providers>
+          <FirebaseErrorListener />
           {children}
           <Toaster />
         </Providers>

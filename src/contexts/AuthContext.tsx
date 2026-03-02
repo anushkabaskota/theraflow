@@ -6,6 +6,8 @@ import { auth } from '@/lib/firebase';
 import { getUserProfile, UserProfile } from '@/lib/firestore';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 interface AuthContextType {
   user: User | null;
@@ -48,13 +50,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(firebaseUser);
       if (firebaseUser) {
         // Set up a real-time listener for the user's profile
-        const unsub = onSnapshot(doc(db, 'users', firebaseUser.uid), (doc) => {
+        const userDocRef = doc(db, 'users', firebaseUser.uid);
+        const unsub = onSnapshot(userDocRef, (doc) => {
           if (doc.exists()) {
             setProfile(doc.data() as UserProfile);
           } else {
-            setProfile(null); // Or handle new user creation
+            setProfile(null);
           }
           setLoading(false);
+        }, (e) => {
+          if (e.code === 'permission-denied') {
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
+              path: userDocRef.path,
+              operation: 'get',
+            }));
+          }
         });
         return () => unsub();
       } else {

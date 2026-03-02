@@ -16,6 +16,8 @@ import type { User } from 'firebase/auth';
 import type { Appointment, UserProfile, TherapistSchedule, TherapistScheduleFromDB, UserRole } from '@/types';
 import { generateSlots } from './schedule';
 import { parseISO, startOfDay, endOfDay } from 'date-fns';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 
 export { type UserProfile, type Appointment, type TherapistSchedule };
 
@@ -23,12 +25,21 @@ export async function getUserProfile(
   uid: string
 ): Promise<UserProfile | null> {
   const userDocRef = doc(db, 'users', uid);
-  const userDocSnap = await getDoc(userDocRef);
-
-  if (userDocSnap.exists()) {
-    return userDocSnap.data() as UserProfile;
-  } else {
-    return null;
+  try {
+    const userDocSnap = await getDoc(userDocRef);
+    if (userDocSnap.exists()) {
+      return userDocSnap.data() as UserProfile;
+    } else {
+      return null;
+    }
+  } catch (e: any) {
+    if (e.code === 'permission-denied') {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: userDocRef.path,
+        operation: 'get',
+      }));
+    }
+    throw e;
   }
 }
 
@@ -49,7 +60,15 @@ export async function createUserProfile(
     userProfile.supervisionStatus = 'unsupervised';
   }
 
-  await setDoc(userDocRef, userProfile);
+  setDoc(userDocRef, userProfile)
+    .catch(async (e) => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: userDocRef.path,
+        operation: 'create',
+        requestResourceData: userProfile,
+      }));
+    });
+
   return userProfile;
 }
 
@@ -65,9 +84,15 @@ export async function setUserRole(
     if (role === 'trainee' && !userProfile.supervisionStatus) {
       updatedProfile.supervisionStatus = 'unsupervised';
     }
-    await setDoc(userDocRef, updatedProfile, { merge: true });
+    setDoc(userDocRef, updatedProfile, { merge: true })
+      .catch(async (e) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+          path: userDocRef.path,
+          operation: 'update',
+          requestResourceData: updatedProfile,
+        }));
+      });
   } else {
-    // This case should ideally not happen if profile is created on signup
     const user = auth.currentUser;
     if(user) {
         await createUserProfile(user, role);
@@ -77,12 +102,25 @@ export async function setUserRole(
 
 export async function createAppointment(appointment: Omit<Appointment, 'id'>): Promise<string> {
     const appointmentsCollectionRef = collection(db, 'appointments');
-    const docRef = await addDoc(appointmentsCollectionRef, {
+    const appointmentData = {
         ...appointment,
         startTime: Timestamp.fromDate(new Date(appointment.startTime)),
         endTime: Timestamp.fromDate(new Date(appointment.endTime)),
-    });
-    return docRef.id;
+    };
+    
+    try {
+        const docRef = await addDoc(appointmentsCollectionRef, appointmentData);
+        return docRef.id;
+    } catch (e: any) {
+        if (e.code === 'permission-denied') {
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: 'appointments',
+                operation: 'create',
+                requestResourceData: appointmentData,
+            }));
+        }
+        throw e;
+    }
 }
 
 
@@ -94,20 +132,28 @@ export async function getAppointmentsForUser(
   const roleField = role === 'patient' ? 'patientId' : 'therapistId';
   
   const q = query(appointmentsCollectionRef, where(roleField, '==', userId));
-  const querySnapshot = await getDocs(q);
-  
-  const appointments: Appointment[] = [];
-  querySnapshot.forEach((doc) => {
-    const data = doc.data();
-    appointments.push({
-      id: doc.id,
-      ...data,
-      startTime: (data.startTime as Timestamp).toDate(),
-      endTime: (data.endTime as Timestamp).toDate(),
-    } as Appointment);
-  });
-  
-  return appointments.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+  try {
+    const querySnapshot = await getDocs(q);
+    const appointments: Appointment[] = [];
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      appointments.push({
+        id: doc.id,
+        ...data,
+        startTime: (data.startTime as Timestamp).toDate(),
+        endTime: (data.endTime as Timestamp).toDate(),
+      } as Appointment);
+    });
+    return appointments.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+  } catch (e: any) {
+    if (e.code === 'permission-denied') {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: 'appointments',
+        operation: 'list',
+      }));
+    }
+    throw e;
+  }
 }
 
 export function listenForAppointments(
@@ -138,6 +184,13 @@ export function listenForAppointments(
     
     const sortedAppointments = appointments.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
     callback(sortedAppointments);
+  }, (e) => {
+    if (e.code === 'permission-denied') {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: 'appointments',
+        operation: 'list',
+      }));
+    }
   });
   
   return unsubscribe;
@@ -146,11 +199,21 @@ export function listenForAppointments(
 
 export async function getTherapistSchedule(therapistId: string): Promise<TherapistScheduleFromDB | null> {
     const scheduleDocRef = doc(db, 'therapists', therapistId, 'schedule', 'default');
-    const scheduleDocSnap = await getDoc(scheduleDocRef);
-    if (scheduleDocSnap.exists()) {
-        return scheduleDocSnap.data() as TherapistScheduleFromDB;
+    try {
+      const scheduleDocSnap = await getDoc(scheduleDocRef);
+      if (scheduleDocSnap.exists()) {
+          return scheduleDocSnap.data() as TherapistScheduleFromDB;
+      }
+      return null;
+    } catch (e: any) {
+      if (e.code === 'permission-denied') {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+          path: scheduleDocRef.path,
+          operation: 'get',
+        }));
+      }
+      throw e;
     }
-    return null;
 }
 
 export async function saveTherapistSchedule(therapistId: string, schedule: TherapistSchedule): Promise<void> {
@@ -163,7 +226,14 @@ export async function saveTherapistSchedule(therapistId: string, schedule: Thera
         })) || [],
         updatedAt: serverTimestamp(),
     };
-    await setDoc(scheduleDocRef, scheduleToSave, { merge: true });
+    setDoc(scheduleDocRef, scheduleToSave, { merge: true })
+      .catch(async (e) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+          path: scheduleDocRef.path,
+          operation: 'write',
+          requestResourceData: scheduleToSave,
+        }));
+      });
 }
 
 
@@ -180,15 +250,12 @@ export async function getAvailableSlots(
   const startDate = startOfDay(parseISO(startDateStr));
   const endDate = endOfDay(parseISO(endDateStr));
 
-  // 1. Generate slots based on rules
   const generated = generateSlots(schedule as TherapistSchedule, startDate, endDate);
 
-  // 2. Add manual one-off slots that are within the date range
   const manual = (schedule.manualSlots || [])
     .map(slot => slot.start.toDate())
     .filter(slotDate => slotDate >= startDate && slotDate <= endDate);
 
-  // 3. Get already booked appointments to filter out unavailable slots
   const appointmentsCollectionRef = collection(db, 'appointments');
   const q = query(
     appointmentsCollectionRef,
@@ -196,22 +263,39 @@ export async function getAvailableSlots(
     where('startTime', '>=', startDate),
     where('startTime', '<=', endDate)
   );
-  const querySnapshot = await getDocs(q);
-  const bookedStartTimes = new Set(
-    querySnapshot.docs.map(doc => (doc.data().startTime as Timestamp).toMillis())
-  );
-
-  // 4. Combine, de-duplicate, and filter
-  const allSlots = [...generated, ...manual];
-  const uniqueSlots = Array.from(new Set(allSlots.map(d => d.getTime())))
-                           .map(time => new Date(time));
-
-  const availableSlots = uniqueSlots.filter(slot => !bookedStartTimes.has(slot.getTime()));
   
-  return availableSlots.sort((a, b) => a.getTime() - b.getTime());
+  try {
+    const querySnapshot = await getDocs(q);
+    const bookedStartTimes = new Set(
+      querySnapshot.docs.map(doc => (doc.data().startTime as Timestamp).toMillis())
+    );
+
+    const allSlots = [...generated, ...manual];
+    const uniqueSlots = Array.from(new Set(allSlots.map(d => d.getTime())))
+                             .map(time => new Date(time));
+
+    const availableSlots = uniqueSlots.filter(slot => !bookedStartTimes.has(slot.getTime()));
+    
+    return availableSlots.sort((a, b) => a.getTime() - b.getTime());
+  } catch (e: any) {
+    if (e.code === 'permission-denied') {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: 'appointments',
+        operation: 'list',
+      }));
+    }
+    throw e;
+  }
 }
 
 export async function updateUserProfile(uid: string, data: Partial<UserProfile>): Promise<void> {
   const userDocRef = doc(db, 'users', uid);
-  await setDoc(userDocRef, data, { merge: true });
+  setDoc(userDocRef, data, { merge: true })
+    .catch(async (e) => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: userDocRef.path,
+        operation: 'update',
+        requestResourceData: data,
+      }));
+    });
 }
