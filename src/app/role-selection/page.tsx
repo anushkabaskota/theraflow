@@ -1,10 +1,11 @@
+
 'use client';
 
 import { useRouter } from 'next/navigation';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
 import { setUserRole } from '@/lib/firestore';
-import { Loader2, User, Stethoscope, GraduationCap, UserCheck } from 'lucide-react';
+import { Loader2, User, GraduationCap, UserCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useEffect, useState } from 'react';
 import type { UserRole } from '@/types';
@@ -64,28 +65,16 @@ export default function RoleSelectionPage() {
           To get started, please select your role.
         </p>
       </div>
-      <div className="mt-8 grid w-full max-w-4xl grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-8 grid w-full max-w-4xl grid-cols-1 gap-6 md:grid-cols-3">
         <Card
           className="cursor-pointer transition-all hover:shadow-lg hover:border-primary"
-          onClick={() => !isSubmitting && handleRoleSelect('patient')}
+          onClick={() => !isSubmitting && handleRoleSelect('user')}
         >
           <CardHeader className="items-center text-center">
             <User className="h-12 w-12 text-primary" />
-            <CardTitle className="mt-4">I am a Patient</CardTitle>
+            <CardTitle className="mt-4">I am a Client</CardTitle>
             <CardDescription>
               Book and manage your therapy sessions.
-            </CardDescription>
-          </CardHeader>
-        </Card>
-        <Card
-          className="cursor-pointer transition-all hover:shadow-lg hover:border-primary"
-          onClick={() => !isSubmitting && handleRoleSelect('therapist')}
-        >
-          <CardHeader className="items-center text-center">
-            <Stethoscope className="h-12 w-12 text-primary" />
-            <CardTitle className="mt-4">I am a Therapist</CardTitle>
-            <CardDescription>
-              Manage your schedule and appointments.
             </CardDescription>
           </CardHeader>
         </Card>

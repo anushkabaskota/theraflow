@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -20,9 +21,10 @@ import { useRouter } from 'next/navigation';
 export function UserNav() {
   const { user, profile } = useAuth();
   const router = useRouter();
+  
   const avatarImage =
     profile?.photoURL ||
-    (profile?.role === 'therapist'
+    (profile?.role === 'trainee' || profile?.role === 'supervisor'
       ? PlaceHolderImages.find((img) => img.id === 'therapist-avatar')?.imageUrl
       : PlaceHolderImages.find((img) => img.id === 'patient-avatar')?.imageUrl);
 

@@ -1,6 +1,7 @@
+
 import type { Timestamp } from 'firebase/firestore';
 
-export type UserRole = 'patient' | 'therapist' | 'trainee' | 'supervisor';
+export type UserRole = 'user' | 'trainee' | 'supervisor';
 export type SupervisionStatus = 'unsupervised' | 'pending' | 'approved' | 'revoked';
 
 export type UserProfile = {

@@ -1,3 +1,4 @@
+
 import {
   doc,
   getDoc,
@@ -126,10 +127,10 @@ export async function createAppointment(appointment: Omit<Appointment, 'id'>): P
 
 export async function getAppointmentsForUser(
   userId: string,
-  role: 'patient' | 'therapist'
+  role: 'user' | 'trainee' | 'supervisor'
 ): Promise<Appointment[]> {
   const appointmentsCollectionRef = collection(db, 'appointments');
-  const roleField = role === 'patient' ? 'patientId' : 'therapistId';
+  const roleField = role === 'user' ? 'patientId' : 'therapistId';
   
   const q = query(appointmentsCollectionRef, where(roleField, '==', userId));
   try {
@@ -158,13 +159,13 @@ export async function getAppointmentsForUser(
 
 export function listenForAppointments(
   userId: string,
-  role: 'patient' | 'therapist' | 'trainee' | 'supervisor',
+  role: 'user' | 'trainee' | 'supervisor',
   callback: (appointments: Appointment[]) => void
 ): () => void {
   const appointmentsCollectionRef = collection(db, 'appointments');
   
   let q;
-  if (role === 'patient') {
+  if (role === 'user') {
     q = query(appointmentsCollectionRef, where('patientId', '==', userId));
   } else {
     q = query(appointmentsCollectionRef, where('therapistId', '==', userId));

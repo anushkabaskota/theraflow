@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -17,11 +18,11 @@ import { CalendarCheck } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 
-function AppointmentCard({ appointment, role }: { appointment: Appointment, role: 'patient' | 'therapist' }) {
-    const isPatient = role === 'patient';
-    const otherPartyName = isPatient ? appointment.therapistName : appointment.patientName;
-    const otherPartyRole = isPatient ? 'Therapist' : 'Patient';
-    const avatarImg = isPatient 
+function AppointmentCard({ appointment, role }: { appointment: Appointment, role: 'user' | 'trainee' | 'supervisor' }) {
+    const isUser = role === 'user';
+    const otherPartyName = isUser ? appointment.therapistName : appointment.patientName;
+    const otherPartyRole = isUser ? 'Provider' : 'Client';
+    const avatarImg = isUser 
       ? PlaceHolderImages.find((img) => img.id === 'therapist-avatar')?.imageUrl
       : PlaceHolderImages.find((img) => img.id === 'patient-avatar')?.imageUrl
 
@@ -64,7 +65,7 @@ export function AppointmentList() {
   useEffect(() => {
     if (user && profile?.role) {
       setLoading(true);
-      const unsubscribe = listenForAppointments(user.uid, profile.role, (apps) => {
+      const unsubscribe = listenForAppointments(user.uid, profile.role as any, (apps) => {
         setAppointments(apps);
         setLoading(false);
       });
@@ -115,7 +116,7 @@ export function AppointmentList() {
                 <h3 className="text-xl font-semibold mb-4">Upcoming</h3>
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {upcomingAppointments.map((app) => (
-                        <AppointmentCard key={app.id} appointment={app} role={profile!.role!} />
+                        <AppointmentCard key={app.id} appointment={app} role={profile!.role! as any} />
                     ))}
                 </div>
             </div>
@@ -126,7 +127,7 @@ export function AppointmentList() {
                 <h3 className="text-xl font-semibold mb-4">Past</h3>
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 opacity-60">
                     {pastAppointments.map((app) => (
-                        <AppointmentCard key={app.id} appointment={app} role={profile!.role!} />
+                        <AppointmentCard key={app.id} appointment={app} role={profile!.role! as any} />
                     ))}
                 </div>
             </div>

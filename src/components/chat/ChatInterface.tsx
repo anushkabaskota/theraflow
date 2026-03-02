@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
@@ -67,7 +68,7 @@ export function ChatInterface() {
   }, [messages]);
 
   const handleSlotSelect = async (slot: string) => {
-    if (!user || profile?.role !== 'patient') return;
+    if (!user || profile?.role !== 'user') return;
 
     setAvailableSlots([]);
     const userMessage: ChatMessageType = {
@@ -84,7 +85,7 @@ export function ChatInterface() {
       const therapistId = "therapist_default_id";
       const therapistName = "Dr. Anna Smith";
       
-      const result = await bookSlot(slot, user.uid, profile.displayName || 'Patient', therapistId, therapistName);
+      const result = await bookSlot(slot, user.uid, profile.displayName || 'User', therapistId, therapistName);
       
       const assistantMessage: ChatMessageType = {
         id: crypto.randomUUID(),

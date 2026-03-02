@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useAuth } from '@/hooks/useAuth';
@@ -29,7 +30,7 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {profile?.role === 'patient' && (
+      {profile?.role === 'user' && (
         <div className="grid gap-4 md:grid-cols-2">
             <div className="rounded-xl border bg-card text-card-foreground shadow p-6 flex flex-col justify-between">
                 <div>

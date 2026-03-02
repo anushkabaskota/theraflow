@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -16,19 +17,26 @@ export function SidebarNav({ onLinkClick }: { onLinkClick?: () => void }) {
   const pathname = usePathname();
   const { profile } = useAuth();
 
-  const patientLinks = [
+  const userLinks = [
     { href: '/dashboard', label: 'Dashboard', icon: Home },
     { href: '/dashboard/book', label: 'Book Session', icon: MessageSquarePlus },
     { href: '/dashboard/appointments', label: 'Appointments', icon: Calendar },
   ];
 
-  const therapistLinks = [
+  const traineeLinks = [
     { href: '/dashboard', label: 'Dashboard', icon: Home },
     { href: '/dashboard/appointments', label: 'Appointments', icon: Calendar },
     { href: '/dashboard/schedule', label: 'Schedule', icon: CalendarPlus },
   ];
 
-  const links = profile?.role === 'patient' ? patientLinks : therapistLinks;
+  const supervisorLinks = [
+    { href: '/dashboard', label: 'Dashboard', icon: Home },
+    { href: '/dashboard/appointments', label: 'Appointments', icon: Calendar },
+  ];
+
+  let links = userLinks;
+  if (profile?.role === 'trainee') links = traineeLinks;
+  if (profile?.role === 'supervisor') links = supervisorLinks;
 
   return (
     <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
