@@ -25,8 +25,13 @@ export default function DashboardLayout({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    if (!loading && (!user || !profile?.role)) {
-      router.replace('/');
+    if (!loading) {
+      if (!user) {
+        router.replace('/');
+      } else if (!profile?.role) {
+        // If user is logged in but has no role, send them to selection
+        router.replace('/role-selection');
+      }
     }
   }, [user, profile, loading, router]);
 

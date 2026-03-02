@@ -34,11 +34,13 @@ export default function HomePage() {
     }
   }, [user, profile, loading, router]);
 
-  if (loading || (user && isMounted)) {
+  // Don't render landing page until we are sure the user is not logged in.
+  // This prevents flashes of content for authenticated users.
+  if (!isMounted || loading || user) {
     return <Loading />;
   }
 
-  // If user is not logged in, show the landing page
+  // If user is definitely not logged in, show the landing page
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground selection:bg-accent selection:text-accent-foreground">
       {/* Navbar */}
