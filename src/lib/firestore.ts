@@ -101,6 +101,27 @@ export async function setUserRole(
   }
 }
 
+export async function getTrainees(): Promise<UserProfile[]> {
+  const usersCollectionRef = collection(db, 'users');
+  const q = query(usersCollectionRef, where('role', '==', 'trainee'));
+  try {
+    const querySnapshot = await getDocs(q);
+    const trainees: UserProfile[] = [];
+    querySnapshot.forEach((doc) => {
+      trainees.push(doc.data() as UserProfile);
+    });
+    return trainees;
+  } catch (e: any) {
+    if (e.code === 'permission-denied') {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: 'users',
+        operation: 'list',
+      }));
+    }
+    throw e;
+  }
+}
+
 export async function createAppointment(appointment: Omit<Appointment, 'id'>): Promise<string> {
     const appointmentsCollectionRef = collection(db, 'appointments');
     const appointmentData = {
