@@ -24,7 +24,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Logo } from '@/components/Logo';
 import { useAuth } from '@/hooks/useAuth';
-import { signInWithGoogle, signInWithEmail, resetPassword } from '@/lib/auth';
+import { signInWithGoogle, signUpWithEmail } from '@/lib/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
@@ -58,23 +58,33 @@ const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email.' }),
-  password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
+  password: z
+    .string()
+    .min(8, { message: 'Password must be at least 8 characters.' })
+    .regex(/[A-Z]/, { message: 'Password must contain at least one uppercase letter.' })
+    .regex(/[a-z]/, { message: 'Password must contain at least one lowercase letter.' })
+    .regex(/[0-9]/, { message: 'Password must contain at least one number.' })
+    .regex(/[^A-Za-z0-9]/, { message: 'Password must contain at least one special character.' }),
+  confirmPassword: z.string()
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords do not match.",
+  path: ["confirmPassword"],
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
-export default function LoginPage() {
+export default function SignupPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isOauthSubmitting, setIsOauthSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: { email: '', password: '' },
+    defaultValues: { email: '', password: '', confirmPassword: '' },
   });
 
   useEffect(() => {
@@ -90,7 +100,7 @@ export default function LoginPage() {
     } catch (error: any) {
       toast({
         title: 'Authentication Error',
-        description: error.message || 'Could not sign in with Google.',
+        description: error.message || 'Could not log in with Google.',
         variant: 'destructive',
       });
       setIsOauthSubmitting(false);
@@ -100,20 +110,18 @@ export default function LoginPage() {
   const handleEmailAuth = async (data: FormValues) => {
     setIsSubmitting(true);
     try {
-      await signInWithEmail(data.email, data.password);
+      await signUpWithEmail(data.email, data.password);
+      toast({
+        title: 'Account Created!',
+        description: 'You can now log in.',
+      });
+      router.push('/login');
     } catch (error: any) {
       let description = 'An unexpected error occurred.';
       if (error.code) {
         switch (error.code) {
-          case 'auth/user-not-found':
-          case 'auth/invalid-credential':
-            description = 'Incorrect email or password. Please try again.';
-            break;
-          case 'auth/wrong-password':
-            description = 'Incorrect password. Please try again.';
-            break;
-          case 'auth/configuration-not-found':
-            description = 'Email/Password sign-in is not enabled. Please enable it in your Firebase console under Authentication > Sign-in method.';
+          case 'auth/email-already-in-use':
+            description = 'An account with this email already exists.';
             break;
           default:
             description = error.message;
@@ -129,40 +137,11 @@ export default function LoginPage() {
     }
   };
 
-  const handleForgotPassword = async () => {
-    const email = form.getValues('email');
-    if (!email) {
-      toast({
-        title: 'Email Required',
-        description: 'Please enter your email address to reset your password.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setIsResettingPassword(true);
-    try {
-      await resetPassword(email);
-      toast({
-        title: 'Check your email',
-        description: 'A password reset link has been sent to your email address.',
-      });
-    } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.message || 'Could not send password reset email.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsResettingPassword(false);
-    }
-  };
-
   if (loading || (user && !isOauthSubmitting)) {
     return null;
   }
 
-  const anySubmitting = isSubmitting || isOauthSubmitting || isResettingPassword;
+  const anySubmitting = isSubmitting || isOauthSubmitting;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-secondary p-4">
@@ -170,7 +149,7 @@ export default function LoginPage() {
         <CardHeader className="flex flex-col items-center justify-center text-center p-6">
           <Logo />
           <CardTitle className="pt-4 text-2xl font-bold">
-            Sign In
+            Create an Account
           </CardTitle>
           <CardDescription>
             to continue to TheraFlow
@@ -197,18 +176,7 @@ export default function LoginPage() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <div className="flex items-center justify-between">
-                      <FormLabel>Password</FormLabel>
-                      <Button
-                        type="button"
-                        variant="link"
-                        className="p-0 h-auto text-xs font-normal text-muted-foreground"
-                        onClick={handleForgotPassword}
-                        disabled={anySubmitting}
-                      >
-                        Forgot password?
-                      </Button>
-                    </div>
+                    <FormLabel>Password</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Input
@@ -240,9 +208,46 @@ export default function LoginPage() {
                   </FormItem>
                 )}
               />
+              <FormField
+                control={form.control}
+                name="confirmPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Confirm Password</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Input
+                          type={showConfirmPassword ? "text" : "password"}
+                          placeholder="••••••••"
+                          {...field}
+                          disabled={anySubmitting}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          disabled={anySubmitting}
+                        >
+                          {showConfirmPassword ? (
+                            <EyeOff className="h-4 w-4 text-muted-foreground" />
+                          ) : (
+                            <Eye className="h-4 w-4 text-muted-foreground" />
+                          )}
+                          <span className="sr-only">
+                            {showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                          </span>
+                        </Button>
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <Button type="submit" className="w-full" disabled={anySubmitting}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Sign In
+                Create Account
               </Button>
             </form>
           </Form>
@@ -273,14 +278,14 @@ export default function LoginPage() {
           </Button>
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
-            Don't have an account?
-            <Link href="/signup">
+            Already have an account?
+            <Link href="/login">
               <Button
                 variant="link"
                 className="p-0 h-auto ml-1"
                 disabled={anySubmitting}
               >
-                Sign up
+                Login
               </Button>
             </Link>
           </p>

@@ -1,10 +1,11 @@
 import {
   GoogleAuthProvider,
-  signInWithRedirect,
+  signInWithPopup,
   signOut as firebaseSignOut,
   getRedirectResult,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
 } from 'firebase/auth';
 import { auth } from './firebase';
 
@@ -14,7 +15,7 @@ export const signInWithGoogle = async () => {
     return;
   }
   const provider = new GoogleAuthProvider();
-  await signInWithRedirect(auth, provider);
+  await signInWithPopup(auth, provider);
 };
 
 export const signInWithEmail = async (email: string, password: string) => {
@@ -45,6 +46,14 @@ export const handleRedirectResult = async () => {
     console.error('Error handling redirect result:', error);
     return null;
   }
+};
+
+export const resetPassword = async (email: string) => {
+  if (!auth) {
+    console.error('Firebase auth is not initialized.');
+    throw new Error('Firebase auth is not initialized.');
+  }
+  return sendPasswordResetEmail(auth, email);
 };
 
 export const signOut = async () => {

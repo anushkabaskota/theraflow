@@ -8,6 +8,7 @@ import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { handleRedirectResult } from '@/lib/auth';
 
 interface AuthContextType {
   user: User | null;
@@ -45,6 +46,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
       return;
     }
+
+    // Handle OAuth redirect result on app load
+    handleRedirectResult().catch((error) => {
+      console.error('Error handling OAuth redirect:', error);
+    });
+
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setLoading(true);
       setUser(firebaseUser);

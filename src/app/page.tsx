@@ -6,10 +6,10 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Logo } from '@/components/Logo';
 import { Button } from '@/components/ui/button';
-import { 
-  HeartHandshake, 
-  ShieldCheck, 
-  GraduationCap, 
+import {
+  HeartHandshake,
+  ShieldCheck,
+  GraduationCap,
   ArrowRight,
   ChevronRight
 } from 'lucide-react';
@@ -53,7 +53,7 @@ export default function HomePage() {
                 Log In
               </Button>
             </Link>
-            <Link href="/login">
+            <Link href="/signup">
               <Button className="text-sm font-medium">
                 Sign Up
               </Button>
@@ -88,7 +88,7 @@ export default function HomePage() {
               </div>
             </div>
           </div>
-          
+
           {/* Subtle background element */}
           <div className="absolute -z-10 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 blur-[120px] opacity-20 pointer-events-none">
             <div className="h-[400px] w-[600px] rounded-full bg-accent" />
@@ -102,7 +102,7 @@ export default function HomePage() {
               <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Our Mission</h2>
               <p className="mt-4 text-muted-foreground">Bridging the gap in mental health access through education and supervision.</p>
             </div>
-            
+
             <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-3">
               <div className="group flex flex-col items-start p-2 transition-all duration-300">
                 <div className="mb-6 rounded-2xl bg-background p-4 shadow-sm border border-border/50 group-hover:shadow-md transition-shadow">
@@ -145,14 +145,14 @@ export default function HomePage() {
                 Ready to take the first step towards better mental health?
               </h2>
               <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-                <Link href="/login">
+                <Link href="/signup">
                   <Button variant="secondary" size="lg" className="h-12 px-8 text-base font-medium">
                     Create your account
                     <ChevronRight className="ml-1 h-4 w-4" />
                   </Button>
                 </Link>
               </div>
-              
+
               {/* Subtle visual flair */}
               <div className="absolute top-0 right-0 h-32 w-32 bg-white/5 blur-3xl -translate-y-1/2 translate-x-1/2" />
               <div className="absolute bottom-0 left-0 h-32 w-32 bg-white/5 blur-3xl translate-y-1/2 -translate-x-1/2" />

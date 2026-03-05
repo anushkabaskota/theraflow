@@ -13,7 +13,9 @@ const firebaseConfig = {
 
 // Fail fast if env vars are missing
 if (!firebaseConfig.apiKey) {
-  throw new Error("Error 404!");
+  throw new Error(
+    "Missing Firebase configuration. Please add NEXT_PUBLIC_FIREBASE_* environment variables to .env.local"
+  );
 }
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
