@@ -1,5 +1,4 @@
-import { ChatInterface } from '@/components/chat/ChatInterface';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ManualBookingForm } from '@/components/booking/ManualBookingForm';
 
 interface PageProps {
   searchParams: Promise<{ therapistId?: string }>;
@@ -13,12 +12,12 @@ export default async function BookSessionPage({ searchParams }: PageProps) {
       <div className="mb-6">
         <h1 className="text-3xl font-bold tracking-tight">Book a Session</h1>
         <p className="text-muted-foreground">
-          Chat with our AI assistant to find the perfect time for your next session.
+          Choose a date and pick an available time slot to book your session.
         </p>
       </div>
-      <Card className="flex-grow">
-        <ChatInterface initialTherapistId={therapistId} />
-      </Card>
+      <div className="max-w-2xl w-full">
+        <ManualBookingForm therapistId={therapistId} />
+      </div>
     </div>
   );
 }

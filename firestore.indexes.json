@@ -1,0 +1,18 @@
+{
+    "indexes": [
+        {
+            "collectionGroup": "appointments",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "therapistId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "startTime",
+                    "order": "ASCENDING"
+                }
+            ]
+        }
+    ]
+}
