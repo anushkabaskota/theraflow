@@ -8,8 +8,10 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { getUserProfile, getAvailableSlots, createAppointment } from '@/lib/firestore';
+import { getGoogleAccessToken, refreshGoogleAccessToken, connectGoogleCalendar } from '@/lib/auth';
+import { createCalendarEvent } from '@/lib/google-calendar';
 import type { UserProfile } from '@/types';
-import { CalendarDays, Clock, CheckCircle2, AlertCircle, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { CalendarDays, Clock, CheckCircle2, AlertCircle, Loader2, ChevronLeft, ChevronRight, Video } from 'lucide-react';
 import { format, addDays, startOfDay, isBefore } from 'date-fns';
 
 export function ManualBookingForm({ therapistId }: { therapistId?: string }) {
@@ -19,7 +21,10 @@ export function ManualBookingForm({ therapistId }: { therapistId?: string }) {
     const [loadingSlots, setLoadingSlots] = useState(false);
     const [booking, setBooking] = useState(false);
     const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
+    const [meetLink, setMeetLink] = useState<string | null>(null);
     const [loadingTherapist, setLoadingTherapist] = useState(true);
+    const [calendarConnected, setCalendarConnected] = useState(!!getGoogleAccessToken());
+    const [connectingCalendar, setConnectingCalendar] = useState(false);
 
     const { user, profile } = useAuth();
     const { toast } = useToast();
@@ -65,15 +70,17 @@ export function ManualBookingForm({ therapistId }: { therapistId?: string }) {
         if (!user || !profile || !therapist || !therapistId) return;
 
         setBooking(true);
+        setMeetLink(null);
         try {
             const startTime = new Date(slotISO);
             const endTime = new Date(startTime.getTime() + 60 * 60 * 1000);
             const isTrainee = therapist.role === 'trainee';
             const therapistName = therapist.displayName || 'Therapist';
+            const patientName = profile.displayName || user.displayName || user.email || 'User';
 
             await createAppointment({
                 patientId: user.uid,
-                patientName: profile.displayName || user.displayName || user.email || 'User',
+                patientName,
                 therapistId,
                 therapistName,
                 startTime,
@@ -81,15 +88,58 @@ export function ManualBookingForm({ therapistId }: { therapistId?: string }) {
                 status: isTrainee ? 'pending' : 'confirmed',
             });
 
+            // Try to create a Google Calendar event with Meet link
+            let calendarNote = '';
+            let accessToken = getGoogleAccessToken();
+
+            if (accessToken) {
+                const attendeeEmails: string[] = [];
+                if (user.email) attendeeEmails.push(user.email);
+                if (therapist.email) attendeeEmails.push(therapist.email);
+
+                let calResult = await createCalendarEvent({
+                    accessToken,
+                    summary: `TheraFlow Session — ${patientName} & ${therapistName}`,
+                    description: `Therapy session booked via TheraFlow.\n\nPatient: ${patientName}\nTherapist: ${therapistName}`,
+                    startTime,
+                    endTime,
+                    attendeeEmails,
+                });
+
+                // If token expired, refresh and retry once
+                if (!calResult.success && calResult.error === 'token_expired') {
+                    const newToken = await refreshGoogleAccessToken();
+                    if (newToken) {
+                        calResult = await createCalendarEvent({
+                            accessToken: newToken,
+                            summary: `TheraFlow Session — ${patientName} & ${therapistName}`,
+                            description: `Therapy session booked via TheraFlow.\n\nPatient: ${patientName}\nTherapist: ${therapistName}`,
+                            startTime,
+                            endTime,
+                            attendeeEmails,
+                        });
+                    }
+                }
+
+                if (calResult.success && calResult.meetLink) {
+                    setMeetLink(calResult.meetLink);
+                    calendarNote = ' A calendar invite with a Google Meet link has been sent to both parties.';
+                } else if (!calResult.success) {
+                    calendarNote = ' (Calendar invite could not be created — the session is still booked.)';
+                }
+            } else {
+                calendarNote = ' Sign in with Google to get calendar invites with Meet links.';
+            }
+
             const dateStr = startTime.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
             const timeStr = startTime.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
             const message = isTrainee
-                ? `Your session request with ${therapistName} on ${dateStr} at ${timeStr} has been sent and is pending approval.`
-                : `Your session with ${therapistName} on ${dateStr} at ${timeStr} has been confirmed!`;
+                ? `Your session request with ${therapistName} on ${dateStr} at ${timeStr} has been sent and is pending approval.${calendarNote}`
+                : `Your session with ${therapistName} on ${dateStr} at ${timeStr} has been confirmed!${calendarNote}`;
 
             setResult({ success: true, message });
             setSlots((prev) => prev.filter((s) => s !== slotISO));
-            toast({ title: isTrainee ? 'Request Sent!' : 'Booked!', description: message });
+            toast({ title: isTrainee ? 'Request Sent!' : 'Booked!', description: isTrainee ? 'Request sent for approval.' : 'Session confirmed!' });
         } catch {
             toast({ title: 'Error', description: 'Something went wrong. Please try again.', variant: 'destructive' });
         } finally {
@@ -195,6 +245,45 @@ export function ManualBookingForm({ therapistId }: { therapistId?: string }) {
                 </CardHeader>
             </Card>
 
+            {/* Connect Google Calendar */}
+            {!calendarConnected && (
+                <Card className="border-blue-500/20 bg-blue-500/5">
+                    <CardContent className="pt-5 pb-5">
+                        <div className="flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-3 min-w-0">
+                                <CalendarDays className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                                <div>
+                                    <p className="text-sm font-medium">Connect Google Calendar</p>
+                                    <p className="text-xs text-muted-foreground">Get calendar invites with Google Meet links when you book</p>
+                                </div>
+                            </div>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={connectingCalendar}
+                                onClick={async () => {
+                                    setConnectingCalendar(true);
+                                    try {
+                                        const token = await connectGoogleCalendar();
+                                        if (token) {
+                                            setCalendarConnected(true);
+                                            toast({ title: 'Connected!', description: 'Google Calendar linked successfully.' });
+                                        }
+                                    } catch {
+                                        toast({ title: 'Error', description: 'Could not connect Google Calendar.', variant: 'destructive' });
+                                    } finally {
+                                        setConnectingCalendar(false);
+                                    }
+                                }}
+                                className="flex-shrink-0"
+                            >
+                                {connectingCalendar ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Connect'}
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
             {/* Date Picker */}
             <Card>
                 <CardHeader className="pb-3">
@@ -278,7 +367,7 @@ export function ManualBookingForm({ therapistId }: { therapistId?: string }) {
             {/* Confirmation */}
             {result?.success && (
                 <Card className="border-green-500/30 bg-green-500/5">
-                    <CardContent className="pt-6">
+                    <CardContent className="pt-6 space-y-4">
                         <div className="flex items-start gap-3">
                             <CheckCircle2 className="h-6 w-6 text-green-600 mt-0.5 flex-shrink-0" />
                             <div>
@@ -288,6 +377,29 @@ export function ManualBookingForm({ therapistId }: { therapistId?: string }) {
                                 <p className="text-sm text-muted-foreground mt-1">{result.message}</p>
                             </div>
                         </div>
+                        {meetLink && (
+                            <div className="flex items-center gap-3 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                                <Video className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-blue-700 dark:text-blue-400">Google Meet Link</p>
+                                    <a
+                                        href={meetLink}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-sm text-blue-600 dark:text-blue-400 underline truncate block"
+                                    >
+                                        {meetLink}
+                                    </a>
+                                </div>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => { navigator.clipboard.writeText(meetLink); toast({ title: 'Copied!', description: 'Meet link copied to clipboard.' }); }}
+                                >
+                                    Copy
+                                </Button>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             )}
