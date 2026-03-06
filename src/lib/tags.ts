@@ -1,0 +1,17 @@
+export const PREDEFINED_TAGS = [
+    { value: 'anxiety', label: 'Anxiety' },
+    { value: 'depression', label: 'Depression' },
+    { value: 'stress', label: 'Stress Management' },
+    { value: 'relationship', label: 'Relationship Issues' },
+    { value: 'family', label: 'Family Conflicts' },
+    { value: 'career', label: 'Career Counseling' },
+    { value: 'trauma', label: 'Trauma and PTSD' },
+    { value: 'addiction', label: 'Addiction' },
+    { value: 'grief', label: 'Grief and Loss' },
+    { value: 'self_esteem', label: 'Self-Esteem' },
+    { value: 'eating_disorders', label: 'Eating Disorders' },
+    { value: 'sleep', label: 'Sleep Issues / Insomnia' },
+    { value: 'anger', label: 'Anger Management' },
+    { value: 'lgbtq', label: 'LGBTQ+ Issues' },
+    { value: 'adhd', label: 'ADHD' },
+];

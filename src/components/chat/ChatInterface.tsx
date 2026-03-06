@@ -10,10 +10,11 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Form, FormControl, FormField, FormItem } from '@/components/ui/form';
 import { bookSlot, findSlots, startBooking } from '@/app/chat/actions';
-import { ChatMessage as ChatMessageType } from '@/types';
+import { ChatMessage as ChatMessageType, UserProfile } from '@/types';
 import { ChatMessage } from './ChatMessage';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { getUserProfile } from '@/lib/firestore';
 import { SendHorizonal } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 
@@ -25,9 +26,10 @@ type FormValues = z.infer<typeof formSchema>;
 
 type ConversationState = 'greeting' | 'date_pending' | 'slot_pending' | 'confirmation_pending' | 'finished';
 
-export function ChatInterface() {
+export function ChatInterface({ initialTherapistId }: { initialTherapistId?: string }) {
   const [messages, setMessages] = useState<ChatMessageType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [targetTherapist, setTargetTherapist] = useState<UserProfile | null>(null);
   const [conversationState, setConversationState] = useState<ConversationState>('greeting');
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
 
@@ -56,14 +58,20 @@ export function ChatInterface() {
   }, []);
 
   useEffect(() => {
+    if (initialTherapistId) {
+      getUserProfile(initialTherapistId).then(setTargetTherapist).catch(console.error);
+    }
+  }, [initialTherapistId]);
+
+  useEffect(() => {
     if (scrollAreaRef.current) {
-        // A bit of a hack to scroll to the bottom.
-        setTimeout(() => {
-            const viewport = scrollAreaRef.current?.querySelector('div[data-radix-scroll-area-viewport]');
-            if (viewport) {
-                viewport.scrollTop = viewport.scrollHeight;
-            }
-        }, 100);
+      // A bit of a hack to scroll to the bottom.
+      setTimeout(() => {
+        const viewport = scrollAreaRef.current?.querySelector('div[data-radix-scroll-area-viewport]');
+        if (viewport) {
+          viewport.scrollTop = viewport.scrollHeight;
+        }
+      }, 100);
     }
   }, [messages]);
 
@@ -81,12 +89,12 @@ export function ChatInterface() {
     setConversationState('confirmation_pending');
 
     try {
-      // For now, we'll assume a default therapist. In a real app, this would be selected.
-      const therapistId = "therapist_default_id";
-      const therapistName = "Dr. Anna Smith";
-      
-      const result = await bookSlot(slot, user.uid, profile.displayName || 'User', therapistId, therapistName);
-      
+      const therapistId = targetTherapist?.uid || "therapist_default_id";
+      const therapistName = targetTherapist?.displayName || "Dr. Anna Smith";
+      const isTrainee = targetTherapist?.role === 'trainee';
+
+      const result = await bookSlot(slot, user.uid, profile.displayName || 'User', therapistId, therapistName, isTrainee);
+
       const assistantMessage: ChatMessageType = {
         id: crypto.randomUUID(),
         role: 'assistant',
@@ -95,7 +103,7 @@ export function ChatInterface() {
       setMessages((prev) => [...prev, assistantMessage]);
       setConversationState('finished');
     } catch (error) {
-      toast({ title: 'Error booking slot', description: 'Please try again.', variant: 'destructive'});
+      toast({ title: 'Error booking slot', description: 'Please try again.', variant: 'destructive' });
     } finally {
       setIsLoading(false);
     }
@@ -111,10 +119,10 @@ export function ChatInterface() {
     setMessages((prev) => [...prev, userMessage]);
     form.reset();
     setIsLoading(true);
-    
+
     if (conversationState === 'date_pending') {
       try {
-        const result = await findSlots(data.message);
+        const result = await findSlots(data.message, targetTherapist?.uid || 'therapist_default_id');
         const assistantMessage: ChatMessageType = {
           id: crypto.randomUUID(),
           role: 'assistant',
@@ -145,19 +153,19 @@ export function ChatInterface() {
           ))}
           {isLoading && <ChatMessage message={{ id: 'loading', role: 'assistant', content: '...' }} isLoading />}
           {availableSlots.length > 0 && (
-             <div className="flex justify-end">
-                <div className="p-3 rounded-lg max-w-xs lg:max-w-md animate-bubble-in">
-                    <div className="flex items-start gap-3">
-                        {aiAvatar && <img src={aiAvatar} alt="AI" className="h-8 w-8 rounded-full" />}
-                        <div className="flex flex-wrap gap-2">
-                            {availableSlots.map(slot => (
-                                <Button key={slot} variant="outline" size="sm" onClick={() => handleSlotSelect(slot)}>
-                                    {new Date(slot).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </Button>
-                            ))}
-                        </div>
-                    </div>
+            <div className="flex justify-end">
+              <div className="p-3 rounded-lg max-w-xs lg:max-w-md animate-bubble-in">
+                <div className="flex items-start gap-3">
+                  {aiAvatar && <img src={aiAvatar} alt="AI" className="h-8 w-8 rounded-full" />}
+                  <div className="flex flex-wrap gap-2">
+                    {availableSlots.map(slot => (
+                      <Button key={slot} variant="outline" size="sm" onClick={() => handleSlotSelect(slot)}>
+                        {new Date(slot).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
+              </div>
             </div>
           )}
         </div>
@@ -171,7 +179,7 @@ export function ChatInterface() {
               render={({ field }) => (
                 <FormItem className="flex-grow">
                   <FormControl>
-                    <Input placeholder="Type your message..." {...field} disabled={isLoading || conversationState === 'finished'}/>
+                    <Input placeholder="Type your message..." {...field} disabled={isLoading || conversationState === 'finished'} />
                   </FormControl>
                 </FormItem>
               )}

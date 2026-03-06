@@ -10,16 +10,26 @@ export type UserProfile = {
   displayName: string | null;
   photoURL: string | null;
   role: UserRole | null;
+  // Profile fields
+  age?: number;
+  pronouns?: string;
+  preferredSessionFormat?: 'online' | 'in-person';
+  languagePreference?: string;
+  languages?: string[];
+  areasOfConcern?: string[];
+  assignedTraineeId?: string;
+  bio?: string;
   // Trainee fields
   supervisionStatus?: SupervisionStatus;
   supervisorId?: string;
   degree?: string;
   institution?: string;
   graduationYear?: number;
-  bio?: string;
   areasOfInterest?: string[];
+  sessionsCompleted?: number;
   // Supervisor fields
   licenseNumber?: string;
+  yearsOfExperience?: number;
 };
 
 export type Appointment = {
@@ -30,7 +40,7 @@ export type Appointment = {
   therapistName: string;
   startTime: Date;
   endTime: Date;
-  status: 'confirmed' | 'cancelled';
+  status: 'pending' | 'confirmed' | 'cancelled';
 };
 
 export type TherapistSchedule = {
@@ -60,7 +70,7 @@ export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: React.ReactNode;
-  
+
 }
 
 export type SupervisionRequest = {

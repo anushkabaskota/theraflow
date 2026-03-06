@@ -2,75 +2,50 @@
 
 import { initiateBooking } from '@/ai/flows/patient-initiates-booking';
 import { checkTherapistAvailability } from '@/ai/flows/check-therapist-availability';
-import { presentAvailableSlots } from '@/ai/flows/present-available-slots';
 import { confirmBookingDetails } from '@/ai/flows/confirm-booking-details';
-import { parse, addDays, nextSunday, formatISO } from 'date-fns';
-
-async function simpleDateParser(text: string): Promise<{ startDate: string; endDate: string }> {
-  const now = new Date();
-  const lowerText = text.toLowerCase();
-
-  if (lowerText.includes('today')) {
-    return { startDate: formatISO(now), endDate: formatISO(now) };
-  }
-  if (lowerText.includes('tomorrow')) {
-    const tomorrow = addDays(now, 1);
-    return { startDate: formatISO(tomorrow), endDate: formatISO(tomorrow) };
-  }
-  if (lowerText.includes('this week')) {
-    const endOfWeek = nextSunday(now);
-    return { startDate: formatISO(now), endDate: formatISO(endOfWeek) };
-  }
-  if (lowerText.includes('next week')) {
-    const startOfNextWeek = nextSunday(now);
-    const endOfNextWeek = nextSunday(startOfNextWeek);
-    return { startDate: formatISO(startOfNextWeek), endDate: formatISO(endOfNextWeek) };
-  }
-
-  try {
-    const parsedDate = parse(text, 'MMMM do', new Date());
-    if (!isNaN(parsedDate.getTime())) {
-      return { startDate: formatISO(parsedDate), endDate: formatISO(parsedDate) };
-    }
-  } catch (e) {
-    // Ignore parsing errors and fall through
-  }
-  
-  // Fallback to next 7 days
-  return { startDate: formatISO(now), endDate: formatISO(addDays(now, 7)) };
-}
+import { requestTraineeSession } from '@/ai/flows/request-trainee-session';
 
 export async function startBooking(): Promise<string> {
-  return initiateBooking({});
+  try {
+    return await initiateBooking({});
+  } catch (error: any) {
+    console.error("Error starting booking:", error);
+    if (error.message?.includes('429') || error.message?.includes('Quota exceeded') || String(error).includes('429')) {
+      return "Hello! I'm currently experiencing high traffic (rate limit exceeded). Please wait a few seconds and try sending a message.";
+    }
+    return "Hello! I'm here to help you book a session. When would you like to schedule it?";
+  }
 }
 
 export async function findSlots(
-  userInput: string
+  userInput: string,
+  therapistId: string = 'therapist_default_id'
 ): Promise<{ formattedSlots: string; availableSlots: string[] }> {
-  const { startDate, endDate } = await simpleDateParser(userInput);
-  const therapistId = 'therapist_default_id'; // In a real app, this would be dynamic
 
-  const availability = await checkTherapistAvailability({
-    therapistId,
-    startDate,
-    endDate,
-  });
+  const currentDateTime = new Date().toISOString();
 
-  if (availability.availableSlots.length === 0) {
+  try {
+    const result = await checkTherapistAvailability({
+      therapistId,
+      userInput,
+      currentDateTime,
+    });
+
+    return result;
+  } catch (error: any) {
+    console.error("Error finding slots using AI:", error);
+
+    let errorMessage = "I'm sorry, I encountered an error checking the schedule. Please try asking again or select a different time.";
+
+    if (error.message?.includes('429') || error.message?.includes('Quota exceeded') || String(error).includes('429')) {
+      errorMessage = "I'm sorry, I am currently experiencing high traffic and hit a rate limit. Please wait 10 seconds and try your request again.";
+    }
+
     return {
-      formattedSlots: "I'm sorry, I couldn't find any available slots for that period. Would you like to try another date range?",
+      formattedSlots: errorMessage,
       availableSlots: [],
     };
   }
-
-  const presentation = await presentAvailableSlots({
-    availableSlots: availability.availableSlots.map(slot => ({ start: slot, end: slot }))
-  });
-
-  return {
-    formattedSlots: presentation.formattedSlots,
-    availableSlots: availability.availableSlots,
-  };
 }
 
 
@@ -79,9 +54,20 @@ export async function bookSlot(
   patientId: string,
   patientName: string,
   therapistId: string,
-  therapistName: string
+  therapistName: string,
+  isTrainee: boolean = false
 ): Promise<{ confirmationMessage: string; bookingSuccessful: boolean }> {
-  
+
+  if (isTrainee) {
+    return await requestTraineeSession({
+      patientId,
+      patientName,
+      therapistId,
+      therapistName,
+      dateTime,
+    });
+  }
+
   const bookingResult = await confirmBookingDetails({
     patientId,
     patientName,

@@ -19,12 +19,14 @@ export function SidebarNav({ onLinkClick }: { onLinkClick?: () => void }) {
 
   const userLinks = [
     { href: '/dashboard', label: 'Dashboard', icon: Home },
-    { href: '/dashboard/book', label: 'Book Session', icon: MessageSquarePlus },
+    { href: '/dashboard/explore', label: 'Explore Therapists', icon: MessageSquarePlus },
+    { href: '/dashboard/book', label: 'Book Session', icon: CalendarPlus },
     { href: '/dashboard/appointments', label: 'Appointments', icon: Calendar },
   ];
 
   const traineeLinks = [
     { href: '/dashboard', label: 'Dashboard', icon: Home },
+    { href: '/dashboard/requests', label: 'Session Requests', icon: MessageSquarePlus },
     { href: '/dashboard/appointments', label: 'Appointments', icon: Calendar },
     { href: '/dashboard/schedule', label: 'Schedule', icon: CalendarPlus },
   ];

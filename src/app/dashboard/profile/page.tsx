@@ -11,6 +11,7 @@ import { EditProfileForm } from '@/components/profile/EditProfileForm';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { UserCheck, Search, Send } from 'lucide-react';
+import { PREDEFINED_TAGS } from '@/lib/tags';
 
 const ProfileDetail = ({ label, value }: { label: string, value?: string | number | string[] | null }) => {
   if (!value || (Array.isArray(value) && value.length === 0)) return null;
@@ -20,9 +21,10 @@ const ProfileDetail = ({ label, value }: { label: string, value?: string | numbe
       <span className="font-semibold w-32 shrink-0">{label}:</span>
       {Array.isArray(value) ? (
         <div className="flex flex-wrap gap-2">
-          {value.map((item) => (
-            <Badge key={item} variant="secondary">{item}</Badge>
-          ))}
+          {value.map((item) => {
+            const tagLabel = PREDEFINED_TAGS.find(t => t.value === item)?.label || item;
+            return <Badge key={item} variant="secondary">{tagLabel}</Badge>;
+          })}
         </div>
       ) : (
         <span className="text-muted-foreground">{value}</span>
@@ -43,7 +45,7 @@ export default function ProfilePage() {
 
   const avatarImage =
     profile?.photoURL ||
-    (profile?.role === 'therapist' || profile?.role === 'supervisor'
+    (profile?.role === 'trainee' || profile?.role === 'supervisor'
       ? PlaceHolderImages.find((img) => img.id === 'therapist-avatar')?.imageUrl
       : PlaceHolderImages.find((img) => img.id === 'patient-avatar')?.imageUrl);
 
@@ -51,7 +53,7 @@ export default function ProfilePage() {
   if (loading) {
     return <Loading />;
   }
-  
+
   if (!profile) {
     return <p>Could not load profile.</p>;
   }
@@ -74,7 +76,7 @@ export default function ProfilePage() {
       case 'pending':
         return (
           <Alert variant="default">
-             <Send className="h-4 w-4" />
+            <Send className="h-4 w-4" />
             <AlertTitle>Request Sent</AlertTitle>
             <AlertDescription>
               Your supervision request is awaiting approval.
@@ -83,7 +85,7 @@ export default function ProfilePage() {
         );
       case 'approved':
         return (
-           <Alert className="border-green-500 text-green-700 [&>svg]:text-green-700">
+          <Alert className="border-green-500 text-green-700 [&>svg]:text-green-700">
             <UserCheck className="h-4 w-4" />
             <AlertTitle>Supervision Approved</AlertTitle>
             <AlertDescription>
@@ -93,7 +95,7 @@ export default function ProfilePage() {
           </Alert>
         );
       case 'revoked':
-         return (
+        return (
           <Alert variant="destructive">
             <AlertTitle>Supervision Inactive</AlertTitle>
             <AlertDescription>
@@ -105,22 +107,22 @@ export default function ProfilePage() {
         return null;
     }
   };
-  
+
   const renderTraineeBanner = () => {
     if (profile.role !== 'trainee') return null;
     return (
-       <Alert variant="default" className="mb-6 bg-accent">
-          <AlertTitle>Psychology Trainee · Supervised Practice</AlertTitle>
-          <AlertDescription>
-           This provider is a psychology trainee working under supervision.
-          </AlertDescription>
-        </Alert>
+      <Alert variant="default" className="mb-6 bg-accent">
+        <AlertTitle>Psychology Trainee · Supervised Practice</AlertTitle>
+        <AlertDescription>
+          This provider is a psychology trainee working under supervision.
+        </AlertDescription>
+      </Alert>
     );
   }
 
   return (
     <div className="flex flex-col gap-6">
-       <div>
+      <div>
         <h1 className="text-3xl font-bold tracking-tight">Your Profile</h1>
         <p className="text-muted-foreground">
           {isEditing ? 'Update your profile details below.' : 'View and manage your profile details.'}
@@ -128,7 +130,7 @@ export default function ProfilePage() {
       </div>
 
       {renderTraineeBanner()}
-      
+
       <Card>
         <CardHeader className="flex flex-row items-start justify-between">
           <div className="flex items-center gap-4">
@@ -144,7 +146,7 @@ export default function ProfilePage() {
             </div>
           </div>
           {!isEditing && (
-             <Button variant="outline" onClick={() => setIsEditing(true)}>Edit Profile</Button>
+            <Button variant="outline" onClick={() => setIsEditing(true)}>Edit Profile</Button>
           )}
         </CardHeader>
         <CardContent>
@@ -152,30 +154,48 @@ export default function ProfilePage() {
             <EditProfileForm onFinished={() => setIsEditing(false)} />
           ) : (
             <div className="space-y-2 divide-y">
-                <ProfileDetail label="Role" value={profile.role} />
-                {profile.bio && <ProfileDetail label="Bio" value={profile.bio} />}
-                
-                {/* Trainee Details */}
-                {profile.role === 'trainee' && (
-                    <>
-                        <ProfileDetail label="Degree" value={profile.degree} />
-                        <ProfileDetail label="Institution" value={profile.institution} />
-                        <ProfileDetail label="Graduation Year" value={profile.graduationYear} />
-                        <ProfileDetail label="Areas of Interest" value={profile.areasOfInterest} />
-                    </>
-                )}
+              <ProfileDetail label="Role" value={profile.role} />
+              {profile.bio && <ProfileDetail label="Bio" value={profile.bio} />}
 
-                {/* Supervisor Details */}
-                {profile.role === 'supervisor' && (
-                    <ProfileDetail label="License #" value={profile.licenseNumber} />
-                )}
+              {/* User Details */}
+              {profile.role === 'user' && (
+                <>
+                  <ProfileDetail label="Age" value={profile.age} />
+                  <ProfileDetail label="Pronouns" value={profile.pronouns} />
+                  <ProfileDetail label="Format Requirement" value={profile.preferredSessionFormat} />
+                  <ProfileDetail label="Language" value={profile.languagePreference} />
+                  <ProfileDetail label="Areas of Concern" value={profile.areasOfConcern} />
+                  {profile.assignedTraineeId && (
+                    <ProfileDetail label="Trainee Match" value={profile.assignedTraineeId} />
+                  )}
+                </>
+              )}
 
-                {profile.role === 'trainee' && (
-                  <div className="pt-4">
-                    <h3 className="text-lg font-semibold mb-2">Supervision Status</h3>
-                    {renderSupervisionStatus()}
-                  </div>
-                )}
+              {/* Trainee Details */}
+              {profile.role === 'trainee' && (
+                <>
+                  <ProfileDetail label="Age" value={profile.age} />
+                  <ProfileDetail label="Pronouns" value={profile.pronouns} />
+                  <ProfileDetail label="Language" value={profile.languagePreference} />
+
+                  <ProfileDetail label="Degree" value={profile.degree} />
+                  <ProfileDetail label="Institution" value={profile.institution} />
+                  <ProfileDetail label="Graduation Year" value={profile.graduationYear} />
+                  <ProfileDetail label="Areas of Interest" value={profile.areasOfInterest} />
+                </>
+              )}
+
+              {/* Supervisor Details */}
+              {profile.role === 'supervisor' && (
+                <ProfileDetail label="License #" value={profile.licenseNumber} />
+              )}
+
+              {profile.role === 'trainee' && (
+                <div className="pt-4">
+                  <h3 className="text-lg font-semibold mb-2">Supervision Status</h3>
+                  {renderSupervisionStatus()}
+                </div>
+              )}
             </div>
           )}
         </CardContent>

@@ -1,15 +1,11 @@
 'use server';
 
 /**
- * @fileOverview Confirms booking details and uses the create_booking tool to reserve the slot.
- *
- * - confirmBookingDetails - A function that confirms the booking details and reserves the slot.
- * - ConfirmBookingDetailsInput - The input type for the confirmBookingDetails function.
- * - ConfirmBookingDetailsOutput - The return type for the confirmBookingDetails function.
+ * @fileOverview Confirms booking details and uses the createBooking tool to reserve the slot.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 import { createAppointment } from '@/lib/firestore';
 
 const ConfirmBookingDetailsInputSchema = z.object({
@@ -38,30 +34,29 @@ const createBooking = ai.defineTool({
     dateTime: z.string().describe('The date and time of the appointment in ISO format.'),
   }),
   outputSchema: z.boolean(),
-  async handler(input) {
-    try {
-        const startTime = new Date(input.dateTime);
-        // Assume 1-hour sessions
-        const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); 
-        
-        await createAppointment({
-          patientId: input.patientId,
-          patientName: input.patientName,
-          therapistId: input.therapistId,
-          therapistName: input.therapistName,
-          startTime,
-          endTime,
-          status: 'confirmed',
-        });
-        console.log(
-          `Booking created for ${input.patientName} with ${input.therapistName} at ${input.dateTime}`
-        );
-        return true;
-    } catch(e) {
-        console.error('Error creating booking:', e);
-        return false;
-    }
-  },
+}, async (input) => {
+  try {
+    const startTime = new Date(input.dateTime);
+    // Assume 1-hour sessions
+    const endTime = new Date(startTime.getTime() + 60 * 60 * 1000);
+
+    await createAppointment({
+      patientId: input.patientId,
+      patientName: input.patientName,
+      therapistId: input.therapistId,
+      therapistName: input.therapistName,
+      startTime,
+      endTime,
+      status: 'confirmed',
+    });
+    console.log(
+      `Booking created for ${input.patientName} with ${input.therapistName} at ${input.dateTime}`
+    );
+    return true;
+  } catch (e) {
+    console.error('Error creating booking:', e);
+    return false;
+  }
 });
 
 export async function confirmBookingDetails(
@@ -72,8 +67,8 @@ export async function confirmBookingDetails(
 
 const confirmBookingDetailsPrompt = ai.definePrompt({
   name: 'confirmBookingDetailsPrompt',
-  input: {schema: ConfirmBookingDetailsInputSchema},
-  output: {schema: ConfirmBookingDetailsOutputSchema},
+  input: { schema: ConfirmBookingDetailsInputSchema },
+  output: { schema: ConfirmBookingDetailsOutputSchema },
   tools: [createBooking],
   prompt: `You are an AI assistant confirming booking details for a therapy session.
 
@@ -95,7 +90,7 @@ const confirmBookingDetailsFlow = ai.defineFlow(
     outputSchema: ConfirmBookingDetailsOutputSchema,
   },
   async input => {
-    const {output} = await confirmBookingDetailsPrompt(input);
+    const { output } = await confirmBookingDetailsPrompt(input);
     return output!;
   }
 );
