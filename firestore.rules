@@ -20,17 +20,24 @@ service cloud.firestore {
     match /users/{userId} {
       allow read, list: if request.auth != null;
       allow create: if isOwner(userId);
-      // A user can update their own profile, but cannot change their role or supervision status.
+      // A user can update their own profile, but cannot change their role.
+      // If they have a supervisionStatus, they cannot change that either.
       // A supervisor can update a trainee's supervision status.
       allow update: if request.auth != null && (
-        (isOwner(userId) && request.resource.data.role == resource.data.role && request.resource.data.supervisionStatus == resource.data.supervisionStatus) ||
+        (isOwner(userId) && request.resource.data.role == resource.data.role &&
+          (!('supervisionStatus' in resource.data) || request.resource.data.supervisionStatus == resource.data.supervisionStatus)
+        ) ||
         (isSupervisor() && get(/databases/$(database)/documents/users/$(userId)).data.role == 'trainee' && request.resource.data.supervisorId == request.auth.uid)
       );
     }
     
     // Supervision Request Rules
     match /supervisionRequests/{requestId} {
-      allow read: if isOwner(resource.data.traineeId) || isOwner(resource.data.supervisorId);
+      allow read: if request.auth != null && (
+        resource.data.traineeId == request.auth.uid ||
+        resource.data.supervisorId == request.auth.uid
+      );
+      allow list: if request.auth != null;
       allow create: if isTrainee() && isOwner(request.resource.data.traineeId);
       allow update: if isSupervisor() && isOwner(resource.data.supervisorId);
     }
@@ -38,7 +45,10 @@ service cloud.firestore {
     // Appointment Rules
     match /appointments/{appointmentId} {
       allow create: if request.auth != null && request.auth.uid == request.resource.data.patientId;
-      allow read: if request.auth != null && (request.auth.uid == resource.data.patientId || request.auth.uid == resource.data.therapistId);
+      // Any participant can read their own appointments
+      allow get: if request.auth != null && (request.auth.uid == resource.data.patientId || request.auth.uid == resource.data.therapistId);
+      // Authenticated users can list/query appointments (needed to check slot availability)
+      allow list: if request.auth != null;
       
       // Therapists can update the status of the appointment
       allow update: if request.auth != null && request.auth.uid == resource.data.therapistId;
@@ -49,10 +59,20 @@ service cloud.firestore {
     match /users/{userId}/schedule/{scheduleId} {
       // Patients and other users need to read the schedule to see availability.
       allow read: if request.auth != null;
-      // Approved trainees can manage their own schedule.
+      // Trainees can manage their own schedule.
       allow write: if request.auth != null && isOwner(userId) &&
-                          (get(/databases/$(database)/documents/users/$(userId)).data.role == 'trainee' &&
-                           get(/databases/$(database)/documents/users/$(userId)).data.supervisionStatus == 'approved');
+                          get(/databases/$(database)/documents/users/$(userId)).data.role == 'trainee';
+    }
+
+    // Session Notes Rules
+    match /sessionNotes/{noteId} {
+      allow create: if request.auth != null && request.resource.data.traineeId == request.auth.uid;
+      allow read: if request.auth != null && (
+        resource.data.traineeId == request.auth.uid ||
+        (resource.data.supervisorId == request.auth.uid && resource.data.sharedWithSupervisor == true)
+      );
+      allow update: if request.auth != null && resource.data.traineeId == request.auth.uid;
+      allow list: if request.auth != null;
     }
   }
 }

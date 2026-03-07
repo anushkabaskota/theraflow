@@ -3,12 +3,14 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { listenForAppointments, updateAppointmentStatus, getUserProfile } from '@/lib/firestore';
+import { getGoogleAccessToken, refreshGoogleAccessToken, connectGoogleCalendar } from '@/lib/auth';
+import { createCalendarEvent } from '@/lib/google-calendar';
 import { Appointment, UserProfile } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Check, X, Clock } from 'lucide-react';
+import { Check, X, Clock, CalendarDays, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { PREDEFINED_TAGS } from '@/lib/tags';
@@ -20,6 +22,8 @@ export default function SessionRequestsPage() {
     const [patientProfiles, setPatientProfiles] = useState<Record<string, UserProfile>>({});
     const [isLoading, setIsLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
+    const [calendarConnected, setCalendarConnected] = useState(!!getGoogleAccessToken());
+    const [connectingCalendar, setConnectingCalendar] = useState(false);
 
     useEffect(() => {
         if (!user || profile?.role !== 'trainee') return;
@@ -47,14 +51,67 @@ export default function SessionRequestsPage() {
         return () => unsubscribe();
     }, [user, profile]);
 
-    const handleAction = async (appointmentId: string, action: 'confirmed' | 'cancelled') => {
+    const handleAction = async (appointmentId: string, action: 'confirmed' | 'cancelled', request?: Appointment) => {
         setActionLoading(appointmentId);
         try {
             await updateAppointmentStatus(appointmentId, action);
-            toast({
-                title: action === 'confirmed' ? "Session Accepted" : "Session Declined",
-                description: action === 'confirmed' ? "The user has been notified of the confirmation." : "The request was successfully removed.",
-            });
+
+            // When confirming, create a Google Calendar event with Meet link
+            if (action === 'confirmed' && request) {
+                let accessToken = getGoogleAccessToken();
+                if (accessToken) {
+                    const pProfile = patientProfiles[request.patientId];
+                    const attendeeEmails: string[] = [];
+                    if (pProfile?.email) attendeeEmails.push(pProfile.email);
+                    if (user?.email) attendeeEmails.push(user.email);
+
+                    let calResult = await createCalendarEvent({
+                        accessToken,
+                        summary: `TheraFlow Session — ${request.patientName} & ${request.therapistName}`,
+                        description: `Therapy session booked via TheraFlow.\n\nPatient: ${request.patientName}\nTherapist: ${request.therapistName}`,
+                        startTime: new Date(request.startTime),
+                        endTime: new Date(request.endTime),
+                        attendeeEmails,
+                    });
+
+                    // If token expired, refresh and retry
+                    if (!calResult.success && calResult.error === 'token_expired') {
+                        const newToken = await refreshGoogleAccessToken();
+                        if (newToken) {
+                            calResult = await createCalendarEvent({
+                                accessToken: newToken,
+                                summary: `TheraFlow Session — ${request.patientName} & ${request.therapistName}`,
+                                description: `Therapy session booked via TheraFlow.\n\nPatient: ${request.patientName}\nTherapist: ${request.therapistName}`,
+                                startTime: new Date(request.startTime),
+                                endTime: new Date(request.endTime),
+                                attendeeEmails,
+                            });
+                        }
+                    }
+
+                    if (calResult.success) {
+                        toast({
+                            title: "Session Accepted",
+                            description: "Calendar invite with Google Meet link sent to both parties.",
+                        });
+                    } else {
+                        toast({
+                            title: "Session Accepted",
+                            description: "Session confirmed, but calendar invite could not be created. Connect Google Calendar for future invites.",
+                        });
+                    }
+                } else {
+                    toast({
+                        title: "Session Accepted",
+                        description: "Session confirmed. Connect Google Calendar to automatically send calendar invites.",
+                    });
+                }
+            } else {
+                toast({
+                    title: action === 'confirmed' ? "Session Accepted" : "Session Declined",
+                    description: action === 'confirmed' ? "The user has been notified of the confirmation." : "The request was successfully removed.",
+                });
+            }
         } catch (error) {
             toast({
                 title: "Action Failed",
@@ -78,6 +135,45 @@ export default function SessionRequestsPage() {
                     Review and respond to session requests from users.
                 </p>
             </div>
+
+            {/* Connect Google Calendar */}
+            {!calendarConnected && (
+                <Card className="border-blue-500/20 bg-blue-500/5">
+                    <CardContent className="pt-5 pb-5">
+                        <div className="flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-3 min-w-0">
+                                <CalendarDays className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                                <div>
+                                    <p className="text-sm font-medium">Connect Google Calendar</p>
+                                    <p className="text-xs text-muted-foreground">Automatically send calendar invites with Google Meet links when you accept sessions</p>
+                                </div>
+                            </div>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={connectingCalendar}
+                                onClick={async () => {
+                                    setConnectingCalendar(true);
+                                    try {
+                                        const token = await connectGoogleCalendar();
+                                        if (token) {
+                                            setCalendarConnected(true);
+                                            toast({ title: 'Connected!', description: 'Google Calendar linked successfully.' });
+                                        }
+                                    } catch {
+                                        toast({ title: 'Error', description: 'Could not connect Google Calendar.', variant: 'destructive' });
+                                    } finally {
+                                        setConnectingCalendar(false);
+                                    }
+                                }}
+                                className="flex-shrink-0"
+                            >
+                                {connectingCalendar ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Connect'}
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
 
             {isLoading ? (
                 <p className="text-muted-foreground">Loading requests...</p>
@@ -140,7 +236,7 @@ export default function SessionRequestsPage() {
                                     <Button
                                         variant="default"
                                         className="flex-1"
-                                        onClick={() => handleAction(request.id, 'confirmed')}
+                                        onClick={() => handleAction(request.id, 'confirmed', request)}
                                         disabled={actionLoading === request.id}
                                     >
                                         <Check className="w-4 h-4 mr-2" /> Accept

@@ -1,0 +1,539 @@
+﻿node.exe : 
+ΓÜá 
+`eslint` con
+figuration 
+in next.conf
+ig.ts is no 
+longer 
+supported. 
+See more 
+info here: h
+ttps://nextj
+s.org/docs/a
+pp/api-refer
+ence/cli/nex
+t#next-lint-
+options
+At line:1 
+char:1
++ & 
+"C:\Program 
+Files\nodejs
+/node.exe" 
+"C:\Program 
+Files\nodejs
+/node_mo ...
++ ~~~~~~~~~~
+~~~~~~~~~~~~
+~~~~~~~~~~~~
+~~~~~~~~~~~~
+~~~~~~~~~~~~
+~~~~~~~~~~~
+    + Categ 
+   oryInfo  
+            
+    : No    
+tSpecif    
+ied: (Γ    
+Üá `esl    
+int` co    
+...xt-l    
+int-opt    
+ions:St    
+ring) [    
+], Remo    
+teExcep    
+tion
+    + Fully 
+   Qualifi  
+  edError   
+ Id : Na    
+tiveCom    
+mandErr    
+or
+ 
+ΓÜá Invalid 
+next.config.
+ts options 
+detected: 
+ΓÜá     Unre
+cognized 
+key(s) in 
+object: 
+'eslint'
+ΓÜá See 
+more info 
+here: https:
+//nextjs.org
+/docs/messag
+es/invalid-n
+ext-config
+Γû▓ Next.js 16.1.6 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+
+> Build 
+error 
+occurred
+Error: 
+Turbopack 
+build 
+failed with 
+2 errors:
+./src/compon
+ents/ui/comm
+and.tsx:5:1
+Module not 
+found: 
+Can't 
+resolve 
+'cmdk'
+[0m [90m 
+3 |[39m [3
+6mimport[39
+m 
+[33m*[39m 
+[36mas[39m
+ [33mReact
+[39m [36mfr
+om[39m [32
+m"react"[39
+m
+ [90m 4 
+|[39m [36m
+import[39m 
+{ type [33m
+DialogProps
+[39m } [36m
+from[39m [
+32m"@radix-u
+i/react-dial
+og"[39m
+[31m[1m>[
+22m[39m[90
+m 5 |[39m 
+[36mimport[
+39m { [33mC
+ommand[39m 
+[36mas[39m
+ [33mComman
+dPrimitive[
+39m } [36mf
+rom[39m [3
+2m"cmdk"[39
+m
+ [90m   
+|[39m [31m
+[1m^[22m[
+39m[31m[1m
+^[22m[39m
+[31m[1m^[2
+2m[39m[31m
+[1m^[22m[
+39m[31m[1m
+^[22m[39m
+[31m[1m^[2
+2m[39m[31m
+[1m^[22m[
+39m[31m[1m
+^[22m[39m
+[31m[1m^[2
+2m[39m[31m
+[1m^[22m[
+39m[31m[1m
+^[22m[39m
+[31m[1m^[2
+2m[39m[31m
+[1m^[22m[
+39m[31m[1m
+^[22m[39m
+[31m[1m^[2
+2m[39m[31m
+[1m^[22m[
+39m[31m[1m
+^[22m[39m
+[31m[1m^[2
+2m[39m[31m
+[1m^[22m[
+39m[31m[1m
+^[22m[39m
+[31m[1m^[2
+2m[39m[31m
+[1m^[22m[
+39m[31m[1m
+^[22m[39m
+[31m[1m^[2
+2m[39m[31m
+[1m^[22m[
+39m[31m[1m
+^[22m[39m
+[31m[1m^[2
+2m[39m[31m
+[1m^[22m[
+39m[31m[1m
+^[22m[39m
+[31m[1m^[2
+2m[39m[31m
+[1m^[22m[
+39m[31m[1m
+^[22m[39m
+[31m[1m^[2
+2m[39m[31m
+[1m^[22m[
+39m[31m[1m
+^[22m[39m
+[31m[1m^[2
+2m[39m[31m
+[1m^[22m[
+39m[31m[1m
+^[22m[39m
+[31m[1m^[2
+2m[39m[31m
+[1m^[22m[
+39m[31m[1m
+^[22m[39m
+[31m[1m^[2
+2m[39m[31m
+[1m^[22m[
+39m[31m[1m
+^[22m[39m
+[31m[1m^[2
+2m[39m[31m
+[1m^[22m[
+39m[31m[1m
+^[22m[39m
+[31m[1m^[2
+2m[39m[31m
+[1m^[22m[
+39m[31m[1m
+^[22m[39m
+ [90m 6 
+|[39m [36m
+import[39m 
+{ [33mSearc
+h[39m } [3
+6mfrom[39m 
+[32m"lucide
+-react"[39m
+ [90m 7 
+|[39m
+ [90m 8 
+|[39m [36m
+import[39m 
+{ cn } [36m
+from[39m [
+32m"@/lib/ut
+ils"[39m[0
+m
+
+
+
+Import 
+traces:
+  Client 
+Component 
+Browser:
+    ./src/co
+mponents/ui/
+command.tsx 
+[Client 
+Component 
+Browser]
+    ./src/co
+mponents/ui/
+multi-select
+.tsx 
+[Client 
+Component 
+Browser]
+    ./src/ap
+p/dashboard/
+explore/page
+.tsx 
+[Client 
+Component 
+Browser]
+    ./src/ap
+p/dashboard/
+explore/page
+.tsx 
+[Server 
+Component]
+
+  Client 
+Component 
+SSR:
+    ./src/co
+mponents/ui/
+command.tsx 
+[Client 
+Component 
+SSR]
+    ./src/co
+mponents/ui/
+multi-select
+.tsx 
+[Client 
+Component 
+SSR]
+    ./src/ap
+p/dashboard/
+explore/page
+.tsx 
+[Client 
+Component 
+SSR]
+    ./src/ap
+p/dashboard/
+explore/page
+.tsx 
+[Server 
+Component]
+
+https://next
+js.org/docs/
+messages/mod
+ule-not-foun
+d
+
+
+./src/compon
+ents/ui/mult
+i-select.tsx
+:6:1
+Module not 
+found: 
+Can't 
+resolve 
+'cmdk'
+[0m [90m 
+4 |[39m [3
+6mimport[39
+m { [33mBad
+ge[39m } [
+36mfrom[39m
+ [32m"@/com
+ponents/ui/b
+adge"[39m[
+33m;[39m
+ [90m 5 
+|[39m [36m
+import[39m 
+{ [33mComma
+nd[39m[33m
+,[39m [33m
+CommandGroup
+[39m[33m,
+[39m [33mCo
+mmandItem[3
+9m } [36mfr
+om[39m [32
+m"@/componen
+ts/ui/comman
+d"[39m[33m
+;[39m
+[31m[1m>[
+22m[39m[90
+m 6 |[39m 
+[36mimport[
+39m { [33mC
+ommand[39m 
+[36mas[39m
+ [33mComman
+dPrimitive[
+39m } [36mf
+rom[39m [3
+2m"cmdk"[39
+m[33m;[39m
+ [90m   
+|[39m [31m
+[1m^[22m[
+39m[31m[1m
+^[22m[39m
+[31m[1m^[2
+2m[39m[31m
+[1m^[22m[
+39m[31m[1m
+^[22m[39m
+[31m[1m^[2
+2m[39m[31m
+[1m^[22m[
+39m[31m[1m
+^[22m[39m
+[31m[1m^[2
+2m[39m[31m
+[1m^[22m[
+39m[31m[1m
+^[22m[39m
+[31m[1m^[2
+2m[39m[31m
+[1m^[22m[
+39m[31m[1m
+^[22m[39m
+[31m[1m^[2
+2m[39m[31m
+[1m^[22m[
+39m[31m[1m
+^[22m[39m
+[31m[1m^[2
+2m[39m[31m
+[1m^[22m[
+39m[31m[1m
+^[22m[39m
+[31m[1m^[2
+2m[39m[31m
+[1m^[22m[
+39m[31m[1m
+^[22m[39m
+[31m[1m^[2
+2m[39m[31m
+[1m^[22m[
+39m[31m[1m
+^[22m[39m
+[31m[1m^[2
+2m[39m[31m
+[1m^[22m[
+39m[31m[1m
+^[22m[39m
+[31m[1m^[2
+2m[39m[31m
+[1m^[22m[
+39m[31m[1m
+^[22m[39m
+[31m[1m^[2
+2m[39m[31m
+[1m^[22m[
+39m[31m[1m
+^[22m[39m
+[31m[1m^[2
+2m[39m[31m
+[1m^[22m[
+39m[31m[1m
+^[22m[39m
+[31m[1m^[2
+2m[39m[31m
+[1m^[22m[
+39m[31m[1m
+^[22m[39m
+[31m[1m^[2
+2m[39m[31m
+[1m^[22m[
+39m[31m[1m
+^[22m[39m
+[31m[1m^[2
+2m[39m[31m
+[1m^[22m[
+39m[31m[1m
+^[22m[39m
+[31m[1m^[2
+2m[39m[31m
+[1m^[22m[
+39m[31m[1m
+^[22m[39m
+[31m[1m^[2
+2m[39m
+ [90m 7 
+|[39m
+ [90m 8 
+|[39m type 
+[33mFramewo
+rk[39m 
+[33m=[39m 
+[33mRecord
+[39m[33m<[
+39m[32m"val
+ue"[39m 
+[33m|[39m 
+[32m"label"
+[39m[33m,
+[39m string
+[33m>[39m[
+33m;[39m
+ [90m 9 
+|[39m[0m
+
+
+
+Import 
+traces:
+  Client 
+Component 
+Browser:
+    ./src/co
+mponents/ui/
+multi-select
+.tsx 
+[Client 
+Component 
+Browser]
+    ./src/ap
+p/dashboard/
+explore/page
+.tsx 
+[Client 
+Component 
+Browser]
+    ./src/ap
+p/dashboard/
+explore/page
+.tsx 
+[Server 
+Component]
+
+  Client 
+Component 
+SSR:
+    ./src/co
+mponents/ui/
+multi-select
+.tsx 
+[Client 
+Component 
+SSR]
+    ./src/ap
+p/dashboard/
+explore/page
+.tsx 
+[Client 
+Component 
+SSR]
+    ./src/ap
+p/dashboard/
+explore/page
+.tsx 
+[Server 
+Component]
+
+https://next
+js.org/docs/
+messages/mod
+ule-not-foun
+d
+
+
+    at 
+<unknown> (.
+/src/compone
+nts/ui/comma
+nd.tsx:5:1)
+    at 
+<unknown> (h
+ttps://nextj
+s.org/docs/m
+essages/modu
+le-not-found
+)
+    at 
+<unknown> (.
+/src/compone
+nts/ui/multi
+-select.tsx:
+6:1)
+    at 
+<unknown> (h
+ttps://nextj
+s.org/docs/m
+essages/modu
+le-not-found
+)
