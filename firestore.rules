@@ -33,7 +33,11 @@ service cloud.firestore {
     
     // Supervision Request Rules
     match /supervisionRequests/{requestId} {
-      allow read: if isOwner(resource.data.traineeId) || isOwner(resource.data.supervisorId);
+      allow read: if request.auth != null && (
+        resource.data.traineeId == request.auth.uid ||
+        resource.data.supervisorId == request.auth.uid
+      );
+      allow list: if request.auth != null;
       allow create: if isTrainee() && isOwner(request.resource.data.traineeId);
       allow update: if isSupervisor() && isOwner(resource.data.supervisorId);
     }

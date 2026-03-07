@@ -14,13 +14,13 @@ import {
 } from 'firebase/firestore';
 import { db, auth } from './firebase';
 import type { User } from 'firebase/auth';
-import type { Appointment, UserProfile, TherapistSchedule, TherapistScheduleFromDB, UserRole } from '@/types';
+import type { Appointment, UserProfile, TherapistSchedule, TherapistScheduleFromDB, UserRole, SupervisionRequest } from '@/types';
 import { generateSlots } from './schedule';
 import { parseISO, startOfDay, endOfDay } from 'date-fns';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 
-export { type UserProfile, type Appointment, type TherapistSchedule };
+export { type UserProfile, type Appointment, type TherapistSchedule, type SupervisionRequest };
 
 export async function getUserProfile(
   uid: string
@@ -337,3 +337,161 @@ export async function updateUserProfile(uid: string, data: Partial<UserProfile>)
       }));
     });
 }
+
+// ========== Supervision / Mentorship Functions ==========
+
+export async function getSupervisors(): Promise<UserProfile[]> {
+  const usersCollectionRef = collection(db, 'users');
+  const q = query(usersCollectionRef, where('role', '==', 'supervisor'));
+  try {
+    const querySnapshot = await getDocs(q);
+    const supervisors: UserProfile[] = [];
+    querySnapshot.forEach((doc) => {
+      supervisors.push(doc.data() as UserProfile);
+    });
+    return supervisors;
+  } catch (e: any) {
+    if (e.code === 'permission-denied') {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: 'users',
+        operation: 'list',
+      }));
+    }
+    throw e;
+  }
+}
+
+export async function createSupervisionRequest(
+  traineeId: string,
+  supervisorId: string,
+  message: string
+): Promise<string> {
+  const requestsCollectionRef = collection(db, 'supervisionRequests');
+  const requestData = {
+    traineeId,
+    supervisorId,
+    message,
+    status: 'pending',
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  };
+  try {
+    const docRef = await addDoc(requestsCollectionRef, requestData);
+    return docRef.id;
+  } catch (e: any) {
+    if (e.code === 'permission-denied') {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: 'supervisionRequests',
+        operation: 'create',
+        requestResourceData: requestData,
+      }));
+    }
+    throw e;
+  }
+}
+
+export function listenForSupervisionRequests(
+  userId: string,
+  role: 'trainee' | 'supervisor',
+  callback: (requests: SupervisionRequest[]) => void
+): () => void {
+  const requestsCollectionRef = collection(db, 'supervisionRequests');
+  const field = role === 'trainee' ? 'traineeId' : 'supervisorId';
+  const q = query(
+    requestsCollectionRef,
+    where(field, '==', userId),
+    where('status', '==', 'pending')
+  );
+
+  const unsubscribe = onSnapshot(q, (querySnapshot) => {
+    const requests: SupervisionRequest[] = [];
+    querySnapshot.forEach((docSnap) => {
+      const data = docSnap.data();
+      requests.push({
+        id: docSnap.id,
+        traineeId: data.traineeId,
+        supervisorId: data.supervisorId,
+        status: data.status,
+        message: data.message,
+        createdAt: data.createdAt?.toDate?.() || new Date(),
+        updatedAt: data.updatedAt?.toDate?.() || new Date(),
+      } as SupervisionRequest);
+    });
+    callback(requests);
+  }, (e) => {
+    if (e.code === 'permission-denied') {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: 'supervisionRequests',
+        operation: 'list',
+      }));
+    }
+  });
+
+  return unsubscribe;
+}
+
+export async function updateSupervisionRequestStatus(
+  requestId: string,
+  status: 'approved' | 'rejected'
+): Promise<void> {
+  const docRef = doc(db, 'supervisionRequests', requestId);
+  try {
+    await setDoc(docRef, { status, updatedAt: serverTimestamp() }, { merge: true });
+  } catch (e: any) {
+    if (e.code === 'permission-denied') {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: `supervisionRequests/${requestId}`,
+        operation: 'update',
+        requestResourceData: { status },
+      }));
+    }
+    throw e;
+  }
+}
+
+export async function approveTrainee(
+  supervisorId: string,
+  traineeId: string
+): Promise<void> {
+  const traineeDocRef = doc(db, 'users', traineeId);
+  try {
+    await setDoc(traineeDocRef, {
+      supervisorId,
+      supervisionStatus: 'approved',
+    }, { merge: true });
+  } catch (e: any) {
+    if (e.code === 'permission-denied') {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: traineeDocRef.path,
+        operation: 'update',
+      }));
+    }
+    throw e;
+  }
+}
+
+export async function getTraineesForSupervisor(supervisorId: string): Promise<UserProfile[]> {
+  const usersCollectionRef = collection(db, 'users');
+  const q = query(
+    usersCollectionRef,
+    where('role', '==', 'trainee'),
+    where('supervisorId', '==', supervisorId)
+  );
+  try {
+    const querySnapshot = await getDocs(q);
+    const trainees: UserProfile[] = [];
+    querySnapshot.forEach((docSnap) => {
+      trainees.push(docSnap.data() as UserProfile);
+    });
+    return trainees;
+  } catch (e: any) {
+    if (e.code === 'permission-denied') {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: 'users',
+        operation: 'list',
+      }));
+    }
+    throw e;
+  }
+}
+

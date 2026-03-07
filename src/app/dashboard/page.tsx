@@ -3,9 +3,11 @@
 import { useAuth } from '@/hooks/useAuth';
 import { AppointmentList } from '@/components/appointments/AppointmentList';
 import { ClientExploreFeed } from '@/components/dashboard/ClientExploreFeed';
+import { MyTrainees } from '@/components/dashboard/MyTrainees';
+import { MySupervisor } from '@/components/dashboard/MySupervisor';
 
 export default function DashboardPage() {
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
 
   const getGreeting = () => {
     const hours = new Date().getHours();
@@ -25,12 +27,28 @@ export default function DashboardPage() {
         <p className="text-muted-foreground">
           {profile?.role === 'user'
             ? 'Find and book sessions with our available trainees.'
-            : 'Here’s what’s happening with your account today.'}
+            : 'Here\u2019s what\u2019s happening with your account today.'}
         </p>
       </div>
 
       {profile?.role === 'user' ? (
         <ClientExploreFeed />
+      ) : profile?.role === 'supervisor' ? (
+        <div className="space-y-6">
+          {user && <MyTrainees supervisorId={user.uid} />}
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight mb-4">Upcoming Appointments</h2>
+            <AppointmentList />
+          </div>
+        </div>
+      ) : profile?.role === 'trainee' ? (
+        <div className="space-y-6">
+          {profile?.supervisorId && <MySupervisor supervisorId={profile.supervisorId} />}
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight mb-4">Upcoming Appointments</h2>
+            <AppointmentList />
+          </div>
+        </div>
       ) : (
         <div>
           <h2 className="text-2xl font-bold tracking-tight mb-4">Upcoming Appointments</h2>

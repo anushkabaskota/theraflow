@@ -10,6 +10,8 @@ import {
   Home,
   MessageSquarePlus,
   CalendarPlus,
+  Search,
+  Users,
 } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
 
@@ -26,6 +28,7 @@ export function SidebarNav({ onLinkClick }: { onLinkClick?: () => void }) {
 
   const traineeLinks = [
     { href: '/dashboard', label: 'Dashboard', icon: Home },
+    { href: '/dashboard/find-supervisor', label: 'Find Supervisor', icon: Search },
     { href: '/dashboard/requests', label: 'Session Requests', icon: MessageSquarePlus },
     { href: '/dashboard/appointments', label: 'Appointments', icon: Calendar },
     { href: '/dashboard/schedule', label: 'Schedule', icon: CalendarPlus },
@@ -33,6 +36,7 @@ export function SidebarNav({ onLinkClick }: { onLinkClick?: () => void }) {
 
   const supervisorLinks = [
     { href: '/dashboard', label: 'Dashboard', icon: Home },
+    { href: '/dashboard/mentorship-requests', label: 'Mentorship Requests', icon: Users },
     { href: '/dashboard/appointments', label: 'Appointments', icon: Calendar },
   ];
 
