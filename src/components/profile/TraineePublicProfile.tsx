@@ -3,11 +3,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { PREDEFINED_TAGS } from "@/lib/tags";
-import { PlaceHolderImages } from "@/lib/placeholder-images";
+
 import { MapPin, GraduationCap, Languages, Calendar, CheckCircle2, UserCircle } from "lucide-react";
 
 export function TraineePublicProfile({ therapist, supervisorName }: { therapist: UserProfile, supervisorName?: string }) {
-    const avatarImage = therapist.photoURL || PlaceHolderImages.find((img) => img.id === 'therapist-avatar')?.imageUrl;
+    const avatarImage = therapist.photoURL || undefined;
 
     const getInitials = (name?: string | null) => {
         if (!name) return 'U';

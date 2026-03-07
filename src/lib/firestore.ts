@@ -288,7 +288,13 @@ export async function getAvailableSlots(
   const startDate = startOfDay(parseISO(startDateStr));
   const endDate = endOfDay(parseISO(endDateStr));
 
-  const generated = generateSlots(schedule as TherapistSchedule, startDate, endDate);
+  // Use startOfDay for both bounds when generating recurring slots.
+  // generateSlots internally does: while(isBefore(currentDate, addDays(endDate, 1)))
+  // If we pass endOfDay, that extends the loop boundary into the next day, doubling slots.
+  const slotsStartDate = startOfDay(parseISO(startDateStr));
+  const slotsEndDate = startOfDay(parseISO(endDateStr));
+
+  const generated = generateSlots(schedule as TherapistSchedule, slotsStartDate, slotsEndDate);
 
   const manual = (schedule.manualSlots || [])
     .map(slot => slot.start.toDate())

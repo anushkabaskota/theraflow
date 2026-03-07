@@ -26,7 +26,7 @@ export type GenerateSessionNotesOutput = z.infer<typeof GenerateSessionNotesOutp
 
 const generateSessionNotesPrompt = ai.definePrompt({
     name: 'generateSessionNotesPrompt',
-    model: 'googleai/gemini-2.0-flash',
+    model: 'googleai/gemini-2.5-flash',
     input: { schema: GenerateSessionNotesInputSchema },
     output: { schema: GenerateSessionNotesOutputSchema },
     prompt: `You are an expert clinical supervisor assistant. You are given the transcription of a therapy session.

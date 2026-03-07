@@ -14,7 +14,7 @@ export function ChatMessage({ message, isLoading = false }: ChatMessageProps) {
   const { profile } = useAuth();
   const isAssistant = message.role === 'assistant';
 
-  const userAvatar = profile?.photoURL || PlaceHolderImages.find(p => p.id === 'patient-avatar')?.imageUrl;
+  const userAvatar = profile?.photoURL || undefined;
   const aiAvatar = PlaceHolderImages.find(p => p.id === 'ai-avatar')?.imageUrl;
 
   const getInitials = (name?: string | null) => {

@@ -36,9 +36,12 @@ export function generateSlots(
 
   const stepMinutes = sessionDurationMinutes + mandatoryBreakMinutes;
 
+  // Normalize both dates to midnight to prevent the loop from
+  // iterating an extra day when endDate has a non-midnight time.
   let currentDate = startOfDay(startDate);
+  const normalizedEndDate = startOfDay(endDate);
 
-  while (isBefore(currentDate, addDays(endDate, 1))) {
+  while (isBefore(currentDate, addDays(normalizedEndDate, 1))) {
     if (workingDays.includes(getDay(currentDate))) {
       const workStartTime = parseTime(workingHours.start, currentDate);
       const workEndTime = parseTime(workingHours.end, currentDate);
