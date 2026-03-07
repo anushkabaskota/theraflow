@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Loading from '@/app/loading';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
+
 import { Button } from '@/components/ui/button';
 import { EditProfileForm } from '@/components/profile/EditProfileForm';
 import { Badge } from '@/components/ui/badge';
@@ -43,11 +43,7 @@ export default function ProfilePage() {
     return name.split(' ').map((n) => n[0]).slice(0, 2).join('');
   };
 
-  const avatarImage =
-    profile?.photoURL ||
-    (profile?.role === 'trainee' || profile?.role === 'supervisor'
-      ? PlaceHolderImages.find((img) => img.id === 'therapist-avatar')?.imageUrl
-      : PlaceHolderImages.find((img) => img.id === 'patient-avatar')?.imageUrl);
+  const avatarImage = profile?.photoURL || undefined;
 
 
   if (loading) {

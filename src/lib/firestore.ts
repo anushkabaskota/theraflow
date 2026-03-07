@@ -308,11 +308,21 @@ export async function getAvailableSlots(
       querySnapshot.docs.map(doc => (doc.data().startTime as Timestamp).toMillis())
     );
 
-    const allSlots = [...generated, ...manual];
+    // Round to minute precision to avoid duplicates from millisecond differences
+    const roundToMinute = (d: Date) => {
+      const rounded = new Date(d);
+      rounded.setSeconds(0, 0);
+      return rounded;
+    };
+
+    const allSlots = [...generated, ...manual].map(roundToMinute);
     const uniqueSlots = Array.from(new Set(allSlots.map(d => d.getTime())))
       .map(time => new Date(time));
 
-    const availableSlots = uniqueSlots.filter(slot => !bookedStartTimes.has(slot.getTime()));
+    const now = new Date();
+    const availableSlots = uniqueSlots.filter(slot =>
+      !bookedStartTimes.has(slot.getTime()) && slot.getTime() > now.getTime()
+    );
 
     return availableSlots.sort((a, b) => a.getTime() - b.getTime());
   } catch (e: any) {

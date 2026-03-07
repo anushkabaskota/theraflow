@@ -33,8 +33,8 @@ export function generateSlots(
   if (!workingDays || workingDays.length === 0) {
     return [];
   }
-  
-  const totalSlotAndBreakTime = sessionDurationMinutes + mandatoryBreakMinutes;
+
+  const stepMinutes = sessionDurationMinutes + mandatoryBreakMinutes;
 
   let currentDate = startOfDay(startDate);
 
@@ -46,33 +46,34 @@ export function generateSlots(
       const lunchInterval =
         lunchBreak.enabled && lunchBreak.start && lunchBreak.end
           ? {
-              start: parseTime(lunchBreak.start, currentDate),
-              end: parseTime(lunchBreak.end, currentDate),
-            }
+            start: parseTime(lunchBreak.start, currentDate),
+            end: parseTime(lunchBreak.end, currentDate),
+          }
           : null;
 
       let slotTime = workStartTime;
 
-      while (isBefore(addMinutes(slotTime, sessionDurationMinutes), addMinutes(workEndTime, 1))) {
+      // Generate slots, session must END by workEndTime (inclusive)
+      while (!isAfter(addMinutes(slotTime, sessionDurationMinutes), workEndTime)) {
         const slotEndTime = addMinutes(slotTime, sessionDurationMinutes);
-
-        const slotInterval = { start: slotTime, end: slotEndTime };
 
         let overlapsWithLunch = false;
         if (lunchInterval) {
-          // Check if slot starts or ends during lunch, or if lunch is contained within the slot
-          const startsDuringLunch = isAfter(slotInterval.start, lunchInterval.start) && isBefore(slotInterval.start, lunchInterval.end);
-          const endsDuringLunch = isAfter(slotInterval.end, lunchInterval.start) && isBefore(slotInterval.end, lunchInterval.end);
-          const containsLunch = isBefore(slotInterval.start, lunchInterval.start) && isAfter(slotInterval.end, lunchInterval.end);
-
+          const startsDuringLunch = !isBefore(slotTime, lunchInterval.start) && isBefore(slotTime, lunchInterval.end);
+          const endsDuringLunch = isAfter(slotEndTime, lunchInterval.start) && !isAfter(slotEndTime, lunchInterval.end);
+          const containsLunch = isBefore(slotTime, lunchInterval.start) && isAfter(slotEndTime, lunchInterval.end);
           overlapsWithLunch = startsDuringLunch || endsDuringLunch || containsLunch;
         }
 
-        if (!overlapsWithLunch) {
+        if (overlapsWithLunch && lunchInterval) {
+          // Jump to end of lunch break and restart the grid from there
+          slotTime = lunchInterval.end;
+        } else if (!overlapsWithLunch) {
           slots.push(slotTime);
+          slotTime = addMinutes(slotTime, stepMinutes);
+        } else {
+          slotTime = addMinutes(slotTime, stepMinutes);
         }
-
-        slotTime = addMinutes(slotTime, totalSlotAndBreakTime);
       }
     }
     currentDate = addDays(currentDate, 1);

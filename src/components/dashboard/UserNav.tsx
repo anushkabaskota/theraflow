@@ -14,19 +14,15 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/hooks/useAuth';
 import { signOut } from '@/lib/auth';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
+
 import { LogOut, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export function UserNav() {
   const { user, profile } = useAuth();
   const router = useRouter();
-  
-  const avatarImage =
-    profile?.photoURL ||
-    (profile?.role === 'trainee' || profile?.role === 'supervisor'
-      ? PlaceHolderImages.find((img) => img.id === 'therapist-avatar')?.imageUrl
-      : PlaceHolderImages.find((img) => img.id === 'patient-avatar')?.imageUrl);
+
+  const avatarImage = profile?.photoURL || undefined;
 
   const getInitials = (name?: string | null) => {
     if (!name) return 'U';

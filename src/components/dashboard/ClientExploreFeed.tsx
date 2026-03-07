@@ -108,7 +108,7 @@ export function ClientExploreFeed() {
                                             <AvatarFallback>{trainee.displayName?.charAt(0) || 'T'}</AvatarFallback>
                                         </Avatar>
                                         <div>
-                                            <CardTitle className="text-lg">{trainee.displayName || 'Anonymous Trainee'}</CardTitle>
+                                            <CardTitle className="text-lg">{trainee.displayName || 'Trainee'}</CardTitle>
                                             <div className="text-sm text-muted-foreground mt-0.5 flex items-center gap-1.5">
                                                 <GraduationCap className="h-3.5 w-3.5" />
                                                 <span className="truncate">{trainee.degree || 'Trainee'}</span>
