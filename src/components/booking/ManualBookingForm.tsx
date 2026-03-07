@@ -88,47 +88,51 @@ export function ManualBookingForm({ therapistId }: { therapistId?: string }) {
                 status: isTrainee ? 'pending' : 'confirmed',
             });
 
-            // Try to create a Google Calendar event with Meet link
+            // Only create calendar event for auto-confirmed (non-trainee) bookings.
+            // For trainees, the calendar invite is created when the therapist accepts.
             let calendarNote = '';
-            let accessToken = getGoogleAccessToken();
+            if (!isTrainee) {
+                const accessToken = getGoogleAccessToken();
+                if (accessToken) {
+                    const attendeeEmails: string[] = [];
+                    if (user.email) attendeeEmails.push(user.email);
+                    if (therapist.email) attendeeEmails.push(therapist.email);
 
-            if (accessToken) {
-                const attendeeEmails: string[] = [];
-                if (user.email) attendeeEmails.push(user.email);
-                if (therapist.email) attendeeEmails.push(therapist.email);
+                    let calResult = await createCalendarEvent({
+                        accessToken,
+                        summary: `TheraFlow Session — ${patientName} & ${therapistName}`,
+                        description: `Therapy session booked via TheraFlow.\n\nPatient: ${patientName}\nTherapist: ${therapistName}`,
+                        startTime,
+                        endTime,
+                        attendeeEmails,
+                    });
 
-                let calResult = await createCalendarEvent({
-                    accessToken,
-                    summary: `TheraFlow Session — ${patientName} & ${therapistName}`,
-                    description: `Therapy session booked via TheraFlow.\n\nPatient: ${patientName}\nTherapist: ${therapistName}`,
-                    startTime,
-                    endTime,
-                    attendeeEmails,
-                });
-
-                // If token expired, refresh and retry once
-                if (!calResult.success && calResult.error === 'token_expired') {
-                    const newToken = await refreshGoogleAccessToken();
-                    if (newToken) {
-                        calResult = await createCalendarEvent({
-                            accessToken: newToken,
-                            summary: `TheraFlow Session — ${patientName} & ${therapistName}`,
-                            description: `Therapy session booked via TheraFlow.\n\nPatient: ${patientName}\nTherapist: ${therapistName}`,
-                            startTime,
-                            endTime,
-                            attendeeEmails,
-                        });
+                    // If token expired, refresh and retry once
+                    if (!calResult.success && calResult.error === 'token_expired') {
+                        const newToken = await refreshGoogleAccessToken();
+                        if (newToken) {
+                            calResult = await createCalendarEvent({
+                                accessToken: newToken,
+                                summary: `TheraFlow Session — ${patientName} & ${therapistName}`,
+                                description: `Therapy session booked via TheraFlow.\n\nPatient: ${patientName}\nTherapist: ${therapistName}`,
+                                startTime,
+                                endTime,
+                                attendeeEmails,
+                            });
+                        }
                     }
-                }
 
-                if (calResult.success && calResult.meetLink) {
-                    setMeetLink(calResult.meetLink);
-                    calendarNote = ' A calendar invite with a Google Meet link has been sent to both parties.';
-                } else if (!calResult.success) {
-                    calendarNote = ' (Calendar invite could not be created — the session is still booked.)';
+                    if (calResult.success && calResult.meetLink) {
+                        setMeetLink(calResult.meetLink);
+                        calendarNote = ' A calendar invite with a Google Meet link has been sent to both parties.';
+                    } else if (!calResult.success) {
+                        calendarNote = ' (Calendar invite could not be created — the session is still booked.)';
+                    }
+                } else {
+                    calendarNote = ' Sign in with Google to get calendar invites with Meet links.';
                 }
             } else {
-                calendarNote = ' Sign in with Google to get calendar invites with Meet links.';
+                calendarNote = ' A calendar invite with a Google Meet link will be sent once the therapist accepts.';
             }
 
             const dateStr = startTime.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
