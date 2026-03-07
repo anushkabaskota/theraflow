@@ -14,13 +14,13 @@ import {
 } from 'firebase/firestore';
 import { db, auth } from './firebase';
 import type { User } from 'firebase/auth';
-import type { Appointment, UserProfile, TherapistSchedule, TherapistScheduleFromDB, UserRole, SupervisionRequest } from '@/types';
+import type { Appointment, UserProfile, TherapistSchedule, TherapistScheduleFromDB, UserRole, SupervisionRequest, SessionNotes } from '@/types';
 import { generateSlots } from './schedule';
 import { parseISO, startOfDay, endOfDay } from 'date-fns';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 
-export { type UserProfile, type Appointment, type TherapistSchedule, type SupervisionRequest };
+export { type UserProfile, type Appointment, type TherapistSchedule, type SupervisionRequest, type SessionNotes };
 
 export async function getUserProfile(
   uid: string
@@ -489,6 +489,100 @@ export async function getTraineesForSupervisor(supervisorId: string): Promise<Us
       errorEmitter.emit('permission-error', new FirestorePermissionError({
         path: 'users',
         operation: 'list',
+      }));
+    }
+    throw e;
+  }
+}
+
+// ========== Session Notes Functions ==========
+
+export async function saveSessionNotes(notes: Omit<SessionNotes, 'id'>): Promise<string> {
+  const notesCollectionRef = collection(db, 'sessionNotes');
+  const notesData = {
+    ...notes,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  };
+  try {
+    const docRef = await addDoc(notesCollectionRef, notesData);
+    return docRef.id;
+  } catch (e: any) {
+    if (e.code === 'permission-denied') {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: 'sessionNotes',
+        operation: 'create',
+      }));
+    }
+    throw e;
+  }
+}
+
+export async function getSessionNotesForAppointment(appointmentId: string): Promise<SessionNotes | null> {
+  const notesCollectionRef = collection(db, 'sessionNotes');
+  const q = query(notesCollectionRef, where('appointmentId', '==', appointmentId));
+  try {
+    const querySnapshot = await getDocs(q);
+    if (querySnapshot.empty) return null;
+    const docSnap = querySnapshot.docs[0];
+    const data = docSnap.data();
+    return {
+      id: docSnap.id,
+      ...data,
+      createdAt: data.createdAt?.toDate?.() || new Date(),
+      updatedAt: data.updatedAt?.toDate?.() || new Date(),
+    } as SessionNotes;
+  } catch (e: any) {
+    if (e.code === 'permission-denied') {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: 'sessionNotes',
+        operation: 'list',
+      }));
+    }
+    throw e;
+  }
+}
+
+export async function getSessionNotesForSupervisor(supervisorId: string): Promise<SessionNotes[]> {
+  const notesCollectionRef = collection(db, 'sessionNotes');
+  const q = query(
+    notesCollectionRef,
+    where('supervisorId', '==', supervisorId),
+    where('sharedWithSupervisor', '==', true)
+  );
+  try {
+    const querySnapshot = await getDocs(q);
+    const notes: SessionNotes[] = [];
+    querySnapshot.forEach((docSnap) => {
+      const data = docSnap.data();
+      notes.push({
+        id: docSnap.id,
+        ...data,
+        createdAt: data.createdAt?.toDate?.() || new Date(),
+        updatedAt: data.updatedAt?.toDate?.() || new Date(),
+      } as SessionNotes);
+    });
+    return notes.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  } catch (e: any) {
+    if (e.code === 'permission-denied') {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: 'sessionNotes',
+        operation: 'list',
+      }));
+    }
+    throw e;
+  }
+}
+
+export async function shareNotesWithSupervisor(notesId: string, supervisorId: string): Promise<void> {
+  const docRef = doc(db, 'sessionNotes', notesId);
+  try {
+    await setDoc(docRef, { sharedWithSupervisor: true, supervisorId, updatedAt: serverTimestamp() }, { merge: true });
+  } catch (e: any) {
+    if (e.code === 'permission-denied') {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: `sessionNotes/${notesId}`,
+        operation: 'update',
       }));
     }
     throw e;

@@ -82,3 +82,17 @@ export type SupervisionRequest = {
   createdAt: Date;
   updatedAt: Date;
 };
+
+export type SessionNotes = {
+  id: string;
+  appointmentId: string;
+  traineeId: string;
+  supervisorId?: string;
+  transcription: string;
+  detailedNotes: string;           // For trainee's reference
+  supervisorSummary: string;       // Anonymized themes for supervisor
+  sharedWithSupervisor: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
