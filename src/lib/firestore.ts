@@ -590,6 +590,38 @@ export async function getSessionNotesForSupervisor(supervisorId: string): Promis
   }
 }
 
+export async function getSessionNotesForTrainee(traineeId: string, supervisorId: string): Promise<SessionNotes[]> {
+  const notesCollectionRef = collection(db, 'sessionNotes');
+  const q = query(
+    notesCollectionRef,
+    where('traineeId', '==', traineeId),
+    where('supervisorId', '==', supervisorId),
+    where('sharedWithSupervisor', '==', true)
+  );
+  try {
+    const querySnapshot = await getDocs(q);
+    const notes: SessionNotes[] = [];
+    querySnapshot.forEach((docSnap) => {
+      const data = docSnap.data();
+      notes.push({
+        id: docSnap.id,
+        ...data,
+        createdAt: data.createdAt?.toDate?.() || new Date(),
+        updatedAt: data.updatedAt?.toDate?.() || new Date(),
+      } as SessionNotes);
+    });
+    return notes.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  } catch (e: any) {
+    if (e.code === 'permission-denied') {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: 'sessionNotes',
+        operation: 'list',
+      }));
+    }
+    throw e;
+  }
+}
+
 export async function shareNotesWithSupervisor(notesId: string, supervisorId: string): Promise<void> {
   const docRef = doc(db, 'sessionNotes', notesId);
   try {

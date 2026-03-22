@@ -13,6 +13,7 @@ import {
   Search,
   Users,
   FileText,
+  BarChart3,
 } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
 
@@ -38,6 +39,7 @@ export function SidebarNav({ onLinkClick }: { onLinkClick?: () => void }) {
 
   const supervisorLinks = [
     { href: '/dashboard', label: 'Dashboard', icon: Home },
+    { href: '/dashboard/analytics', label: 'Analytics', icon: BarChart3 },
     { href: '/dashboard/mentorship-requests', label: 'Mentorship Requests', icon: Users },
     { href: '/dashboard/trainee-notes', label: 'Trainee Notes', icon: FileText },
     { href: '/dashboard/appointments', label: 'Appointments', icon: Calendar },
