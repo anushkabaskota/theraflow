@@ -3,12 +3,12 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { PREDEFINED_TAGS } from "@/lib/tags";
-import { PlaceHolderImages } from "@/lib/placeholder-images";
+
 import { Award, Briefcase, Building2, Languages, Clock, Users } from "lucide-react";
 import Link from "next/link";
 
 export function SupervisorPublicProfile({ therapist, trainees = [] }: { therapist: UserProfile, trainees?: UserProfile[] }) {
-    const avatarImage = therapist.photoURL || PlaceHolderImages.find((img) => img.id === 'therapist-avatar')?.imageUrl;
+    const avatarImage = therapist.photoURL || undefined;
 
     const getInitials = (name?: string | null) => {
         if (!name) return 'U';

@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { PREDEFINED_TAGS } from "@/lib/tags";
-import { PlaceHolderImages } from "@/lib/placeholder-images";
+
 import { AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -19,7 +19,7 @@ export function TherapistCard({ therapist }: { therapist: UserProfile }) {
         return name.split(' ').map((n) => n[0]).slice(0, 2).join('');
     };
 
-    const avatarImage = therapist.photoURL || PlaceHolderImages.find((img) => img.id === 'therapist-avatar')?.imageUrl;
+    const avatarImage = therapist.photoURL || undefined;
 
     const interestsLabel = (therapist.areasOfInterest || []).map(tag => {
         return PREDEFINED_TAGS.find(t => t.value === tag)?.label || tag;

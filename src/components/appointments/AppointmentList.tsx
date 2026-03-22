@@ -16,20 +16,18 @@ import { format } from 'date-fns';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { CalendarCheck } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
+
 
 function AppointmentCard({ appointment, role }: { appointment: Appointment, role: 'user' | 'trainee' | 'supervisor' }) {
-    const isUser = role === 'user';
-    const otherPartyName = isUser ? appointment.therapistName : appointment.patientName;
-    const otherPartyRole = isUser ? 'Provider' : 'Client';
-    const avatarImg = isUser 
-      ? PlaceHolderImages.find((img) => img.id === 'therapist-avatar')?.imageUrl
-      : PlaceHolderImages.find((img) => img.id === 'patient-avatar')?.imageUrl
+  const isUser = role === 'user';
+  const otherPartyName = isUser ? appointment.therapistName : appointment.patientName;
+  const otherPartyRole = isUser ? 'Provider' : 'Client';
 
-    const getInitials = (name?: string | null) => {
-        if (!name) return 'U';
-        return name.split(' ').map((n) => n[0]).slice(0, 2).join('');
-    };
+
+  const getInitials = (name?: string | null) => {
+    if (!name) return 'U';
+    return name.split(' ').map((n) => n[0]).slice(0, 2).join('');
+  };
 
   return (
     <Card>
@@ -44,12 +42,12 @@ function AppointmentCard({ appointment, role }: { appointment: Appointment, role
       </CardHeader>
       <CardContent className="flex items-center gap-4">
         <Avatar>
-            <AvatarImage src={avatarImg} />
-            <AvatarFallback>{getInitials(otherPartyName)}</AvatarFallback>
+          <AvatarImage src={undefined} />
+          <AvatarFallback>{getInitials(otherPartyName)}</AvatarFallback>
         </Avatar>
         <div>
-            <p className="font-medium">{otherPartyName}</p>
-            <p className="text-sm text-muted-foreground">{otherPartyRole}</p>
+          <p className="font-medium">{otherPartyName}</p>
+          <p className="text-sm text-muted-foreground">{otherPartyRole}</p>
         </div>
       </CardContent>
     </Card>
@@ -105,33 +103,33 @@ export function AppointmentList() {
       </Alert>
     );
   }
-  
+
   const upcomingAppointments = appointments.filter(a => new Date(a.startTime) >= new Date());
   const pastAppointments = appointments.filter(a => new Date(a.startTime) < new Date());
 
   return (
     <div className="space-y-8">
-        {upcomingAppointments.length > 0 && (
-            <div>
-                <h3 className="text-xl font-semibold mb-4">Upcoming</h3>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {upcomingAppointments.map((app) => (
-                        <AppointmentCard key={app.id} appointment={app} role={profile!.role! as any} />
-                    ))}
-                </div>
-            </div>
-        )}
-        
-        {pastAppointments.length > 0 && (
-            <div>
-                <h3 className="text-xl font-semibold mb-4">Past</h3>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 opacity-60">
-                    {pastAppointments.map((app) => (
-                        <AppointmentCard key={app.id} appointment={app} role={profile!.role! as any} />
-                    ))}
-                </div>
-            </div>
-        )}
+      {upcomingAppointments.length > 0 && (
+        <div>
+          <h3 className="text-xl font-semibold mb-4">Upcoming</h3>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {upcomingAppointments.map((app) => (
+              <AppointmentCard key={app.id} appointment={app} role={profile!.role! as any} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {pastAppointments.length > 0 && (
+        <div>
+          <h3 className="text-xl font-semibold mb-4">Past</h3>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 opacity-60">
+            {pastAppointments.map((app) => (
+              <AppointmentCard key={app.id} appointment={app} role={profile!.role! as any} />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
